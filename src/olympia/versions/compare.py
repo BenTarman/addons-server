@@ -5,7 +5,8 @@ from django.utils.encoding import force_text
 
 MAXVERSION = 2 ** 63 - 1
 
-version_re = re.compile(r"""(?P<major>\d+|\*)      # major (x in x.y)
+version_re = re.compile(
+    r"""(?P<major>\d+|\*)      # major (x in x.y)
                             \.?(?P<minor1>\d+|\*)? # minor1 (y in x.y)
                             \.?(?P<minor2>\d+|\*)? # minor2 (z in x.y.z)
                             \.?(?P<minor3>\d+|\*)? # minor3 (w in x.y.z.w)
@@ -14,7 +15,8 @@ version_re = re.compile(r"""(?P<major>\d+|\*)      # major (x in x.y)
                             (?P<pre>pre)?          # pre release
                             (?P<pre_ver>\d)?       # pre release version
                         """,
-                        re.VERBOSE)
+    re.VERBOSE,
+)
 
 LETTERS = ['alpha', 'pre']
 NUMBERS = ['major', 'minor1', 'minor2', 'minor3', 'alpha_ver', 'pre_ver']
@@ -48,6 +50,13 @@ def version_int(version):
     vdict['pre'] = 0 if vdict['pre'] else 1
 
     vint = '%d%02d%02d%02d%d%02d%d%02d' % (
-        vdict['major'], vdict['minor1'], vdict['minor2'], vdict['minor3'],
-        vdict['alpha'], vdict['alpha_ver'], vdict['pre'], vdict['pre_ver'])
+        vdict['major'],
+        vdict['minor1'],
+        vdict['minor2'],
+        vdict['minor3'],
+        vdict['alpha'],
+        vdict['alpha_ver'],
+        vdict['pre'],
+        vdict['pre_ver'],
+    )
     return min(int(vint), MAXVERSION)

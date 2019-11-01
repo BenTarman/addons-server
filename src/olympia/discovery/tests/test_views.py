@@ -20,7 +20,7 @@ class DiscoveryTestMixin(object):
         for app, compat in version.compatible_apps.items():
             assert data['compatibility'][app.short] == {
                 'min': compat.min.version,
-                'max': compat.max.version
+                'max': compat.max.version,
             }
         assert data['is_strict_compatibility_enabled'] is False
         assert data['files']
@@ -31,13 +31,15 @@ class DiscoveryTestMixin(object):
         file_ = version.files.latest('pk')
         assert result_file['id'] == file_.pk
         assert result_file['created'] == (
-            file_.created.replace(microsecond=0).isoformat() + 'Z')
+            file_.created.replace(microsecond=0).isoformat() + 'Z'
+        )
         assert result_file['hash'] == file_.hash
         assert result_file['is_restart_required'] == file_.is_restart_required
         assert result_file['is_webextension'] == file_.is_webextension
         assert (
-            result_file['is_mozilla_signed_extension'] ==
-            file_.is_mozilla_signed_extension)
+            result_file['is_mozilla_signed_extension']
+            == file_.is_mozilla_signed_extension
+        )
 
         assert result_file['size'] == file_.size
         assert result_file['status'] == amo.STATUS_CHOICES_API[file_.status]
@@ -53,9 +55,12 @@ class DiscoveryTestMixin(object):
             assert result['addon']['name'] == {'en-US': str(addon.name)}
         assert result['addon']['slug'] == addon.slug
         assert result['addon']['icon_url'] == absolutify(
-            addon.get_icon_url(64))
-        assert (result['addon']['current_version']['files'][0]['id'] ==
-                addon.current_version.all_files[0].pk)
+            addon.get_icon_url(64)
+        )
+        assert (
+            result['addon']['current_version']['files'][0]['id']
+            == addon.current_version.all_files[0].pk
+        )
 
         assert result['heading'] == item.heading
         assert result['description'] == item.description
@@ -65,7 +70,8 @@ class DiscoveryTestMixin(object):
         assert 'heading_text' not in result
 
         self._check_disco_addon_version(
-            result['addon']['current_version'], addon.current_version)
+            result['addon']['current_version'], addon.current_version
+        )
 
 
 class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
@@ -115,8 +121,11 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
             response = self.client.get(self.url, {'lang': 'en-US'})
         assert response.data
 
-        discopane_items = DiscoveryItem.objects.all().filter(
-            position__gt=0).order_by('position')
+        discopane_items = (
+            DiscoveryItem.objects.all()
+            .filter(position__gt=0)
+            .order_by('position')
+        )
         assert response.data['count'] == len(discopane_items)
         assert response.data['results']
 
@@ -124,21 +133,22 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
             assert result['is_recommendation'] is False
             self._check_disco_addon(result, discopane_items[i])
 
-    @override_settings(DRF_API_GATES={
-        'v5': ('l10n_flat_input_output',)})
+    @override_settings(DRF_API_GATES={'v5': ('l10n_flat_input_output',)})
     def test_list_flat_output(self):
         response = self.client.get(self.url, {'lang': 'en-US'})
         assert response.data
 
-        discopane_items = DiscoveryItem.objects.all().filter(
-            position__gt=0).order_by('position')
+        discopane_items = (
+            DiscoveryItem.objects.all()
+            .filter(position__gt=0)
+            .order_by('position')
+        )
         assert response.data['count'] == len(discopane_items)
         assert response.data['results']
 
         for i, result in enumerate(response.data['results']):
             assert result['is_recommendation'] is False
-            self._check_disco_addon(
-                result, discopane_items[i], flat_name=True)
+            self._check_disco_addon(result, discopane_items[i], flat_name=True)
 
     def test_list_unicode_locale(self):
         """Test that disco pane API still works in a locale with non-ascii
@@ -146,8 +156,11 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
         response = self.client.get(self.url, {'lang': 'ru'})
         assert response.data
 
-        discopane_items = DiscoveryItem.objects.all().filter(
-            position__gt=0).order_by('position')
+        discopane_items = (
+            DiscoveryItem.objects.all()
+            .filter(position__gt=0)
+            .order_by('position')
+        )
         assert response.data['count'] == len(discopane_items)
         assert response.data['results']
 
@@ -168,8 +181,11 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
         assert response.data['count'] == 4
         assert response.data['results']
 
-        discopane_items = DiscoveryItem.objects.all().filter(
-            position__gt=0).order_by('position')
+        discopane_items = (
+            DiscoveryItem.objects.all()
+            .filter(position__gt=0)
+            .order_by('position')
+        )
         results = response.data['results']
         assert results[0]['addon']['id'] == discopane_items[3].addon_id
         assert results[1]['addon']['id'] == discopane_items[4].addon_id
@@ -178,11 +194,15 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
 
     def test_china_edition_list(self, edition='china'):
         response = self.client.get(
-            self.url, {'lang': 'en-US', 'edition': edition})
+            self.url, {'lang': 'en-US', 'edition': edition}
+        )
         assert response.data
 
-        discopane_items_china = DiscoveryItem.objects.all().filter(
-            position_china__gt=0).order_by('position_china')
+        discopane_items_china = (
+            DiscoveryItem.objects.all()
+            .filter(position_china__gt=0)
+            .order_by('position_china')
+        )
         assert response.data['count'] == len(discopane_items_china)
         assert response.data['results']
 
@@ -196,11 +216,15 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
 
     def test_invalid_edition_returns_default(self):
         response = self.client.get(
-            self.url, {'lang': 'en-US', 'edition': 'platinum'})
+            self.url, {'lang': 'en-US', 'edition': 'platinum'}
+        )
         assert response.data
 
-        discopane_items = DiscoveryItem.objects.all().filter(
-            position__gt=0).order_by('position')
+        discopane_items = (
+            DiscoveryItem.objects.all()
+            .filter(position__gt=0)
+            .order_by('position')
+        )
         assert response.data['count'] == len(discopane_items)
 
         for i, result in enumerate(response.data['results']):
@@ -209,11 +233,15 @@ class TestDiscoveryViewList(DiscoveryTestMixin, TestCase):
 
     def test_with_wrap_outgoing_links(self):
         response = self.client.get(
-            self.url, {'lang': 'en-US', 'wrap_outgoing_links': 'true'})
+            self.url, {'lang': 'en-US', 'wrap_outgoing_links': 'true'}
+        )
         assert response.data
 
-        discopane_items = DiscoveryItem.objects.all().filter(
-            position__gt=0).order_by('position')
+        discopane_items = (
+            DiscoveryItem.objects.all()
+            .filter(position__gt=0)
+            .order_by('position')
+        )
         assert response.data['count'] == len(discopane_items)
         assert response.data['results']
 
@@ -250,7 +278,8 @@ class TestDiscoveryRecommendations(DiscoveryTestMixin, TestCase):
             DiscoveryItem.objects.create(addon=addon, position_china=i)
 
         patcher = mock.patch(
-            'olympia.discovery.views.get_disco_recommendations')
+            'olympia.discovery.views.get_disco_recommendations'
+        )
         self.get_disco_recommendations_mock = patcher.start()
         self.addCleanup(patcher.stop)
         # If no recommendations then results should be as before - tests from
@@ -276,19 +305,26 @@ class TestDiscoveryRecommendations(DiscoveryTestMixin, TestCase):
         self.get_disco_recommendations_mock.return_value = replacement_items
 
         response = self.client.get(
-            self.url, {'lang': 'en-US', 'telemetry-client-id': '666',
-                       'platform': 'WINNT'})
+            self.url,
+            {
+                'lang': 'en-US',
+                'telemetry-client-id': '666',
+                'platform': 'WINNT',
+            },
+        )
         self.get_disco_recommendations_mock.assert_called_with('666', [])
 
         # should still be the same number of results.
         discopane_items = DiscoveryItem.objects.filter(
-            position__gt=0).order_by('position')
+            position__gt=0
+        ).order_by('position')
         assert response.data['count'] == len(discopane_items)
         assert response.data['results']
 
         # themes aren't replaced by recommendations, so should be as before.
         new_discopane_items = replace_extensions(
-            discopane_items, replacement_items)
+            discopane_items, replacement_items
+        )
         for i, result in enumerate(response.data['results']):
             self._check_disco_addon(result, new_discopane_items[i])
             if result['addon']['type'] != 'extension':
@@ -308,7 +344,8 @@ class TestDiscoveryRecommendations(DiscoveryTestMixin, TestCase):
 
         self.client.get(self.url, {'telemetry-client-id': '666'})
         self.get_disco_recommendations_mock.assert_called_with(
-            u'666', [u'103@mozilla', u'101@mozilla'])
+            u'666', [u'103@mozilla', u'101@mozilla']
+        )
 
     def test_recommendations_with_garbage_telemetry_id(self):
         self.client.get(self.url, {'telemetry-client-id': u'gærbäge'})
@@ -327,13 +364,22 @@ class TestDiscoveryRecommendations(DiscoveryTestMixin, TestCase):
         self.get_disco_recommendations_mock.return_value = replacement_items
 
         response = self.client.get(
-            self.url, {'lang': 'en-US', 'telemetry-client-id': '666',
-                       'platform': 'WINNT', 'edition': 'china'})
+            self.url,
+            {
+                'lang': 'en-US',
+                'telemetry-client-id': '666',
+                'platform': 'WINNT',
+                'edition': 'china',
+            },
+        )
         self.get_disco_recommendations_mock.assert_not_called()
 
         # should be normal results
-        discopane_items_china = DiscoveryItem.objects.all().filter(
-            position_china__gt=0).order_by('position_china')
+        discopane_items_china = (
+            DiscoveryItem.objects.all()
+            .filter(position_china__gt=0)
+            .order_by('position_china')
+        )
         assert response.data['count'] == len(discopane_items_china)
         assert response.data['results']
 
@@ -346,16 +392,18 @@ class TestDiscoveryItemViewSet(TestCase):
     def setUp(self):
         self.items = [
             DiscoveryItem.objects.create(
-                addon=addon_factory(),
-                custom_addon_name=u'Fôoooo'),
+                addon=addon_factory(), custom_addon_name=u'Fôoooo'
+            ),
             DiscoveryItem.objects.create(
                 addon=addon_factory(),
                 custom_heading=u'My Custöm Headîng',
-                custom_description=u''),
+                custom_description=u'',
+            ),
             DiscoveryItem.objects.create(
                 addon=addon_factory(),
                 custom_heading=u'Änother custom heading',
-                custom_description=u'This time with a custom description')
+                custom_description=u'This time with a custom description',
+            ),
         ]
         self.url = reverse_ns('discovery-editorial-list')
 
@@ -382,7 +430,8 @@ class TestDiscoveryItemViewSet(TestCase):
         result = response.data['results'][2]
         assert result['custom_heading'] == u'Änother custom heading'
         assert result['custom_description'] == (
-            u'This time with a custom description')
+            u'This time with a custom description'
+        )
         assert result['addon'] == {'guid': self.items[2].addon.guid}
 
     def test_recommended(self):
@@ -393,15 +442,19 @@ class TestDiscoveryItemViewSet(TestCase):
 
         self.items[0].update(recommendable=True)
         self.items[0].addon.current_version.update(
-            recommendation_approved=True)
+            recommendation_approved=True
+        )
         self.items[2].update(recommendable=True)
         self.items[2].addon.current_version.update(
-            recommendation_approved=True)
+            recommendation_approved=True
+        )
         with self.assertNumQueries(1):
             response = self.client.get(self.url + '?recommended=true')
         assert response.status_code == 200
         assert len(response.data['results']) == 2
         assert response.data['results'][0]['addon']['guid'] == (
-            self.items[0].addon.guid)
+            self.items[0].addon.guid
+        )
         assert response.data['results'][1]['addon']['guid'] == (
-            self.items[2].addon.guid)
+            self.items[2].addon.guid
+        )

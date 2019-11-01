@@ -19,6 +19,7 @@ class PositiveAutoField(models.AutoField):
 
     Because AutoFields are special we need a custom database backend to support
     using them.  See olympia.core.db.mysql.base for that."""
+
     description = _("Positive integer")
 
     def get_internal_type(self):
@@ -38,7 +39,6 @@ class URLValidatorBackport(URLValidator):
 
 
 class HttpHttpsOnlyURLField(fields.URLField):
-
     def __init__(self, *args, **kwargs):
         super(HttpHttpsOnlyURLField, self).__init__(*args, **kwargs)
 
@@ -51,15 +51,17 @@ class HttpHttpsOnlyURLField(fields.URLField):
                 message=_(
                     'This field can only be used to link to external websites.'
                     ' URLs on %(domain)s are not allowed.',
-                ) % {'domain': settings.DOMAIN},
+                )
+                % {'domain': settings.DOMAIN},
                 code='no_amo_url',
-                inverse_match=True
-            )
+                inverse_match=True,
+            ),
         ]
 
 
 class ReCaptchaWidget(HumanCaptchaWidget):
     """Added to workaround to nobot0.5 not supporting django2.1"""
+
     def render(self, name, value, attrs=None, renderer=None):
         return super(ReCaptchaWidget, self).render(name, value, attrs=attrs)
 
@@ -78,7 +80,8 @@ def validate_cidr(value):
         ipaddress.ip_network(value)
     except ValueError:
         raise exceptions.ValidationError(
-            _('Enter a valid IP4 or IP6 network.'), code='invalid')
+            _('Enter a valid IP4 or IP6 network.'), code='invalid'
+        )
 
 
 class CIDRField(models.Field):
@@ -130,7 +133,7 @@ class CIDRField(models.Field):
     def formfield(self, **kwargs):
         defaults = {
             'form_class': fields.CharField,
-            'validators': self.validators
+            'validators': self.validators,
         }
         defaults.update(kwargs)
         return super(CIDRField, self).formfield(**defaults)

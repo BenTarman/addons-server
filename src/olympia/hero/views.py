@@ -8,7 +8,9 @@ from rest_framework.viewsets import GenericViewSet
 
 from .models import PrimaryHero, SecondaryHero
 from .serializers import (
-    PrimaryHeroShelfSerializer, SecondaryHeroShelfSerializer)
+    PrimaryHeroShelfSerializer,
+    SecondaryHeroShelfSerializer,
+)
 
 
 class ShelfViewSet(ListModelMixin, GenericViewSet):
@@ -44,9 +46,9 @@ class PrimaryHeroShelfViewSet(ShelfViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        qs = (qs.select_related('disco_addon')
-                .prefetch_related(
-                    'disco_addon__addon___current_version__previews'))
+        qs = qs.select_related('disco_addon').prefetch_related(
+            'disco_addon__addon___current_version__previews'
+        )
         return qs
 
 
@@ -63,10 +65,12 @@ class SecondaryHeroShelfViewSet(ShelfViewSet):
 class HeroShelvesView(APIView):
     def get(self, request, format=None):
         output = {
-            'primary': PrimaryHeroShelfViewSet(
-                request=request).get_one_random().data,
-            'secondary': SecondaryHeroShelfViewSet(
-                request=request).get_one_random().data,
+            'primary': PrimaryHeroShelfViewSet(request=request)
+            .get_one_random()
+            .data,
+            'secondary': SecondaryHeroShelfViewSet(request=request)
+            .get_one_random()
+            .data,
         }
         return Response(output)
 

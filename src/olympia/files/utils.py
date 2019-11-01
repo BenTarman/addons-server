@@ -18,7 +18,9 @@ from datetime import datetime, timedelta
 from django import forms
 from django.conf import settings
 from django.core.files.storage import (
-    File as DjangoFile, default_storage as storage)
+    File as DjangoFile,
+    default_storage as storage,
+)
 from django.template.defaultfilters import filesizeformat
 from django.utils.encoding import force_text
 from django.utils.jslex import JsLexer
@@ -43,7 +45,8 @@ from olympia.lib.crypto.signing import get_signer_organizational_unit_name
 from olympia.lib import unicodehelper
 from olympia.users.utils import (
     mozilla_signed_extension_submission_allowed,
-    system_addon_submission_allowed)
+    system_addon_submission_allowed,
+)
 
 from olympia.versions.compare import version_int as vint
 
@@ -147,6 +150,7 @@ class InvalidManifest(forms.ValidationError):
 
 class Extractor(object):
     """Extract add-on info from a manifest file."""
+
     App = collections.namedtuple('App', 'appdata id min max')
 
     @classmethod
@@ -158,20 +162,22 @@ class Extractor(object):
 
         if zip_file.exists(certificate):
             certificate_info = SigningCertificateInformation(
-                zip_file.read(certificate))
+                zip_file.read(certificate)
+            )
 
         if zip_file.exists('manifest.json'):
             data = ManifestJSONExtractor(
-                zip_file, certinfo=certificate_info).parse(minimal=minimal)
+                zip_file, certinfo=certificate_info
+            ).parse(minimal=minimal)
         elif zip_file.exists('install.rdf'):
             # Note that RDFExtractor is a misnomer, it receives the zip_file
             # object because it might need to read other files than just
             # the rdf to deal with dictionaries, complete themes etc.
-            data = RDFExtractor(
-                zip_file, certinfo=certificate_info).parse(minimal=minimal)
+            data = RDFExtractor(zip_file, certinfo=certificate_info).parse(
+                minimal=minimal
+            )
         else:
-            raise NoManifestFound(
-                'No install.rdf or manifest.json found')
+            raise NoManifestFound('No install.rdf or manifest.json found')
         return data
 
 
@@ -200,6 +206,7 @@ def get_simple_version(version_string):
 
 class RDFExtractor(object):
     """Extract add-on info from an install.rdf."""
+
     # https://developer.mozilla.org/en-US/Add-ons/Install_Manifests#type
     TYPES = {
         '2': amo.ADDON_EXTENSION,
@@ -223,7 +230,8 @@ class RDFExtractor(object):
         self.zip_file = zip_file
         self.certinfo = certinfo
         self.rdf = rdflib.Graph().parse(
-            data=force_text(zip_file.read('install.rdf')))
+            data=force_text(zip_file.read('install.rdf'))
+        )
         self.package_type = None
         self.find_root()  # Will set self.package_type
 
@@ -243,13 +251,17 @@ class RDFExtractor(object):
             data.update(self.certinfo.parse())
 
         if not minimal:
-            data.update({
-                'homepage': self.find('homepageURL'),
-                'is_restart_required': (
-                    self.find('bootstrap') != 'true' and
-                    self.find('type') not in self.ALWAYS_RESTARTLESS_TYPES),
-                'apps': self.apps(),
-            })
+            data.update(
+                {
+                    'homepage': self.find('homepageURL'),
+                    'is_restart_required': (
+                        self.find('bootstrap') != 'true'
+                        and self.find('type')
+                        not in self.ALWAYS_RESTARTLESS_TYPES
+                    ),
+                    'apps': self.apps(),
+                }
+            )
 
             # We used to simply use the value of 'strictCompatibility' in the
             # rdf to set strict_compatibility, but now we enable it or not for
@@ -261,7 +273,8 @@ class RDFExtractor(object):
             if data['type'] not in amo.NO_COMPAT:
                 if self.certinfo and self.certinfo.is_mozilla_signed_ou:
                     data['strict_compatibility'] = (
-                        self.find('strictCompatibility') == 'true')
+                        self.find('strictCompatibility') == 'true'
+                    )
                 else:
                     data['strict_compatibility'] = True
             else:
@@ -287,9 +300,8 @@ class RDFExtractor(object):
             return amo.ADDON_THEME
 
         # Look for dictionaries.
-        is_dictionary = (
-            self.zip_file.exists('dictionaries/') and
-            any(fname.endswith('.dic') for fname in self.zip_file.namelist())
+        is_dictionary = self.zip_file.exists('dictionaries/') and any(
+            fname.endswith('.dic') for fname in self.zip_file.namelist()
         )
         if is_dictionary:
             return amo.ADDON_DICT
@@ -345,26 +357,31 @@ class RDFExtractor(object):
                 # We don't do that for legacy add-ons that are already
                 # signed by Mozilla to allow them for Firefox 57 onwards.
                 needs_max_56_star = (
-                    app.id in (amo.FIREFOX.id, amo.ANDROID.id) and
-                    max_appver_text == '*' and
-                    not (self.certinfo and self.certinfo.is_mozilla_signed_ou)
+                    app.id in (amo.FIREFOX.id, amo.ANDROID.id)
+                    and max_appver_text == '*'
+                    and not (
+                        self.certinfo and self.certinfo.is_mozilla_signed_ou
+                    )
                 )
 
                 if needs_max_56_star:
                     max_appver_text = '56.*'
 
                 min_appver, max_appver = get_appversions(
-                    app, min_appver_text, max_appver_text)
+                    app, min_appver_text, max_appver_text
+                )
             except AppVersion.DoesNotExist:
                 continue
-            rv.append(Extractor.App(
-                appdata=app, id=app.id, min=min_appver, max=max_appver))
+            rv.append(
+                Extractor.App(
+                    appdata=app, id=app.id, min=min_appver, max=max_appver
+                )
+            )
 
         return rv
 
 
 class ManifestJSONExtractor(object):
-
     def __init__(self, zip_file, data='', certinfo=None):
         self.zip_file = zip_file
         self.certinfo = certinfo
@@ -395,7 +412,8 @@ class ManifestJSONExtractor(object):
             self.data = json.loads(json_string)
         except Exception:
             raise InvalidManifest(
-                ugettext('Could not parse the manifest file.'))
+                ugettext('Could not parse the manifest file.')
+            )
 
     def get(self, key, default=None):
         return self.data.get(key, default)
@@ -415,7 +433,8 @@ class ManifestJSONExtractor(object):
         """Return the "applications|browser_specific_settings["gecko"]" part
         of the manifest."""
         parent_block = self.get(
-            'browser_specific_settings', self.get('applications', {}))
+            'browser_specific_settings', self.get('applications', {})
+        )
         return parent_block.get('gecko', {})
 
     @property
@@ -425,9 +444,12 @@ class ManifestJSONExtractor(object):
     @property
     def type(self):
         return (
-            amo.ADDON_LPAPP if 'langpack_id' in self.data
-            else amo.ADDON_STATICTHEME if 'theme' in self.data
-            else amo.ADDON_DICT if 'dictionaries' in self.data
+            amo.ADDON_LPAPP
+            if 'langpack_id' in self.data
+            else amo.ADDON_STATICTHEME
+            if 'theme' in self.data
+            else amo.ADDON_DICT
+            if 'dictionaries' in self.data
             else amo.ADDON_EXTENSION
         )
 
@@ -447,9 +469,7 @@ class ManifestJSONExtractor(object):
             # https://github.com/mozilla/addons-server/issues/8381
             # They are all strictly compatible with a specific version, so
             # the default min version here doesn't matter much.
-            apps = (
-                (amo.FIREFOX, amo.DEFAULT_WEBEXT_MIN_VERSION),
-            )
+            apps = ((amo.FIREFOX, amo.DEFAULT_WEBEXT_MIN_VERSION),)
         elif type_ == amo.ADDON_STATICTHEME:
             # Static themes are only compatible with Firefox desktop >= 53
             # and Firefox for Android >=65.
@@ -466,7 +486,8 @@ class ManifestJSONExtractor(object):
             webext_min = (
                 amo.DEFAULT_WEBEXT_MIN_VERSION
                 if self.get('browser_specific_settings', None) is None
-                else amo.DEFAULT_WEBEXT_MIN_VERSION_BROWSER_SPECIFIC)
+                else amo.DEFAULT_WEBEXT_MIN_VERSION_BROWSER_SPECIFIC
+            )
             # amo.DEFAULT_WEBEXT_MIN_VERSION_BROWSER_SPECIFIC should be 48.0,
             # which is the same as amo.DEFAULT_WEBEXT_MIN_VERSION_ANDROID, so
             # no specific treatment for Android.
@@ -475,10 +496,9 @@ class ManifestJSONExtractor(object):
                 (amo.ANDROID, amo.DEFAULT_WEBEXT_MIN_VERSION_ANDROID),
             )
 
-        doesnt_support_no_id = (
-            self.strict_min_version and
-            (vint(self.strict_min_version) <
-                vint(amo.DEFAULT_WEBEXT_MIN_VERSION_NO_ID))
+        doesnt_support_no_id = self.strict_min_version and (
+            vint(self.strict_min_version)
+            < vint(amo.DEFAULT_WEBEXT_MIN_VERSION_NO_ID)
         )
 
         if self.guid is None and doesnt_support_no_id:
@@ -488,25 +508,28 @@ class ManifestJSONExtractor(object):
 
         # If a minimum strict version is specified, it needs to be higher
         # than the version when Firefox started supporting WebExtensions.
-        unsupported_no_matter_what = (
-            self.strict_min_version and vint(self.strict_min_version) <
-            vint(amo.DEFAULT_WEBEXT_MIN_VERSION))
+        unsupported_no_matter_what = self.strict_min_version and vint(
+            self.strict_min_version
+        ) < vint(amo.DEFAULT_WEBEXT_MIN_VERSION)
         if unsupported_no_matter_what:
             msg = ugettext('Lowest supported "strict_min_version" is 42.0.')
             raise forms.ValidationError(msg)
 
         for app, default_min_version in apps:
             if self.guid is None and not self.strict_min_version:
-                strict_min_version = max(amo.DEFAULT_WEBEXT_MIN_VERSION_NO_ID,
-                                         default_min_version)
+                strict_min_version = max(
+                    amo.DEFAULT_WEBEXT_MIN_VERSION_NO_ID, default_min_version
+                )
             else:
                 # strict_min_version for this app shouldn't be lower than the
                 # default min version for this app.
                 strict_min_version = max(
-                    self.strict_min_version, default_min_version)
+                    self.strict_min_version, default_min_version
+                )
 
             strict_max_version = (
-                self.strict_max_version or amo.DEFAULT_WEBEXT_MAX_VERSION)
+                self.strict_max_version or amo.DEFAULT_WEBEXT_MAX_VERSION
+            )
 
             if vint(strict_max_version) < vint(strict_min_version):
                 strict_max_version = strict_min_version
@@ -519,7 +542,9 @@ class ManifestJSONExtractor(object):
                 # error, we can't guess an appropriate one.
                 msg = ugettext(
                     u'Unknown "strict_min_version" {appver} for {app}'.format(
-                        app=app.pretty, appver=strict_min_version))
+                        app=app.pretty, appver=strict_min_version
+                    )
+                )
                 raise forms.ValidationError(msg)
 
             try:
@@ -531,7 +556,8 @@ class ManifestJSONExtractor(object):
                 max_appver = qs.get(version=amo.DEFAULT_WEBEXT_MAX_VERSION)
 
             yield Extractor.App(
-                appdata=app, id=app.id, min=min_appver, max=max_appver)
+                appdata=app, id=app.id, min=min_appver, max=max_appver
+            )
 
     def target_locale(self):
         """Guess target_locale for a dictionary from manifest contents."""
@@ -566,20 +592,24 @@ class ManifestJSONExtractor(object):
             data['theme'] = self.get('theme', {})
 
         if not minimal:
-            data.update({
-                'is_restart_required': False,
-                'apps': list(self.apps()),
-                # Langpacks have strict compatibility enabled, rest of
-                # webextensions don't.
-                'strict_compatibility': data['type'] == amo.ADDON_LPAPP,
-                'is_experiment': self.is_experiment,
-            })
+            data.update(
+                {
+                    'is_restart_required': False,
+                    'apps': list(self.apps()),
+                    # Langpacks have strict compatibility enabled, rest of
+                    # webextensions don't.
+                    'strict_compatibility': data['type'] == amo.ADDON_LPAPP,
+                    'is_experiment': self.is_experiment,
+                }
+            )
             if self.type == amo.ADDON_EXTENSION:
                 # Only extensions have permissions and content scripts
-                data.update({
-                    'permissions': self.get('permissions', []),
-                    'content_scripts': self.get('content_scripts', []),
-                })
+                data.update(
+                    {
+                        'permissions': self.get('permissions', []),
+                        'content_scripts': self.get('content_scripts', []),
+                    }
+                )
             elif self.type == amo.ADDON_DICT:
                 data['target_locale'] = self.target_locale()
         return data
@@ -590,6 +620,7 @@ class SigningCertificateInformation(object):
     extension, so is signed already with a special certificate.  We want to
     know this so we don't write over it later, and stop unauthorised people
     from submitting them to AMO."""
+
     def __init__(self, certificate_data):
         pkcs7 = certificate_data
         self.cert_ou = get_signer_organizational_unit_name(pkcs7)
@@ -608,8 +639,12 @@ def extract_search(content):
             return dom.getElementsByTagName(tag)[0].childNodes[0].wholeText
         except (IndexError, AttributeError):
             raise forms.ValidationError(
-                ugettext('Could not parse uploaded file, missing or empty '
-                         '<%s> element') % tag)
+                ugettext(
+                    'Could not parse uploaded file, missing or empty '
+                    '<%s> element'
+                )
+                % tag
+            )
 
     # Only catch basic errors, most of that validation already happened in
     # devhub.tasks:annotate_search_plugin_validation
@@ -617,14 +652,12 @@ def extract_search(content):
         dom = minidom.parse(content)
     except DefusedXmlException:
         raise forms.ValidationError(
-            ugettext('OpenSearch: XML Security error.'))
+            ugettext('OpenSearch: XML Security error.')
+        )
     except ExpatError:
         raise forms.ValidationError(ugettext('OpenSearch: XML Parse Error.'))
 
-    return {
-        'name': _text('ShortName'),
-        'description': _text('Description')
-    }
+    return {'name': _text('ShortName'), 'description': _text('Description')}
 
 
 def parse_search(fileorpath, addon=None):
@@ -637,13 +670,15 @@ def parse_search(fileorpath, addon=None):
         log.error('OpenSearch parse error', exc_info=True)
         raise forms.ValidationError(ugettext('Could not parse uploaded file.'))
 
-    return {'guid': None,
-            'type': amo.ADDON_SEARCH,
-            'name': data['name'],
-            'is_restart_required': False,
-            'is_webextension': False,
-            'summary': data['description'],
-            'version': datetime.now().strftime('%Y%m%d')}
+    return {
+        'guid': None,
+        'type': amo.ADDON_SEARCH,
+        'name': data['name'],
+        'is_restart_required': False,
+        'is_webextension': False,
+        'summary': data['description'],
+        'version': datetime.now().strftime('%Y%m%d'),
+    }
 
 
 class FSyncMixin(object):
@@ -655,6 +690,7 @@ class FSyncMixin(object):
     We need this to make sure that on EFS / NFS all data is immediately
     written to avoid any data loss on the way.
     """
+
     def _fsync_dir(self, path):
         descriptor = os.open(path, os.O_DIRECTORY)
         try:
@@ -685,7 +721,8 @@ class FSyncMixin(object):
         (see backup.py -> backup_fsync_and_set_sizes and utils.py)
         """
         super(FSyncMixin, self)._extract_member(
-            member, targetpath, *args, **kwargs)
+            member, targetpath, *args, **kwargs
+        )
 
         parent_dir = os.path.dirname(os.path.normpath(targetpath))
         if parent_dir:
@@ -696,11 +733,13 @@ class FSyncMixin(object):
 
 class FSyncedZipFile(FSyncMixin, zipfile.ZipFile):
     """Subclass of ZipFile that calls `fsync` for file extractions."""
+
     pass
 
 
 class FSyncedTarFile(FSyncMixin, tarfile.TarFile):
     """Subclass of TarFile that calls `fsync` for file extractions."""
+
     pass
 
 
@@ -721,8 +760,10 @@ def _validate_archive_member_name_and_size(filename, filesize):
         # We can't log the filename unfortunately since it's encoding
         # is obviously broken :-/
         log.error('Extraction error, invalid file name encoding')
-        msg = ugettext('Invalid file name in archive. Please make sure '
-                       'all filenames are utf-8 or latin1 encoded.')
+        msg = ugettext(
+            'Invalid file name in archive. Please make sure '
+            'all filenames are utf-8 or latin1 encoded.'
+        )
         raise forms.ValidationError(msg)
 
     if '../' in filename or '..' == filename or filename.startswith('/'):
@@ -732,8 +773,10 @@ def _validate_archive_member_name_and_size(filename, filesize):
         raise forms.ValidationError(msg.format(filename))
 
     if filesize > settings.FILE_UNZIP_SIZE_LIMIT:
-        log.error('Extraction error, file too big for file (%s): '
-                  '%s' % (filename, filesize))
+        log.error(
+            'Extraction error, file too big for file (%s): '
+            '%s' % (filename, filesize)
+        )
         # L10n: {0} is the name of the invalid file.
         msg = ugettext('File exceeding size limit in archive: {0}')
         raise forms.ValidationError(msg.format(filename))
@@ -768,8 +811,9 @@ class SafeZip(object):
             archive_member_validator(self.source, info)
 
         if total_file_size >= settings.MAX_ZIP_UNCOMPRESSED_SIZE:
-            raise forms.ValidationError(ugettext(
-                'Uncompressed size is too large'))
+            raise forms.ValidationError(
+                ugettext('Uncompressed size is too large')
+            )
 
         self.info_list = info_list
         self.zip_file = zip_file
@@ -812,8 +856,10 @@ class SafeZip(object):
             # Directories consistently report their size incorrectly.
             size = os.stat(dest)[stat.ST_SIZE]
             if size != info.file_size:
-                log.error('Extraction error, uncompressed size: %s, %s not %s'
-                          % (self.source, size, info.file_size))
+                log.error(
+                    'Extraction error, uncompressed size: %s, %s not %s'
+                    % (self.source, size, info.file_size)
+                )
                 raise forms.ValidationError(ugettext('Invalid archive.'))
 
     def extract_to_dest(self, dest):
@@ -886,8 +932,8 @@ def extract_extension_to_dest(source, dest=None, force_fsync=False):
                 zip_file.extract_to_dest(target)
         elif source.endswith((u'.tar.gz', u'.tar.bz2', u'.tgz')):
             tarfile_class = (
-                tarfile.TarFile
-                if not force_fsync else FSyncedTarFile)
+                tarfile.TarFile if not force_fsync else FSyncedTarFile
+            )
             with tarfile_class.open(source) as archive:
                 archive.extractall(target)
         elif source.endswith(u'.xml'):
@@ -897,8 +943,7 @@ def extract_extension_to_dest(source, dest=None, force_fsync=False):
     except (zipfile.BadZipfile, tarfile.ReadError, IOError):
         if tempdir is not None:
             rm_local_tmp_dir(tempdir)
-        raise forms.ValidationError(
-            ugettext('Invalid or broken archive.'))
+        raise forms.ValidationError(ugettext('Invalid or broken archive.'))
     return target
 
 
@@ -913,8 +958,14 @@ def copy_over(source, dest):
     shutil.copytree(source, dest)
     # mkdtemp will set the directory permissions to 700
     # for the webserver to read them, we need 755
-    os.chmod(dest, stat.S_IRWXU | stat.S_IRGRP |
-             stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+    os.chmod(
+        dest,
+        stat.S_IRWXU
+        | stat.S_IRGRP
+        | stat.S_IXGRP
+        | stat.S_IROTH
+        | stat.S_IXOTH,
+    )
     shutil.rmtree(source)
 
 
@@ -947,8 +998,9 @@ def get_all_files(folder, strip_prefix='', prefix=None):
     if prefix is not None:
         # This is magic: strip the prefix, e.g /tmp/ and prepend the prefix
         all_files = [
-            os.path.join(prefix, fname[len(strip_prefix) + 1:])
-            for fname in all_files]
+            os.path.join(prefix, fname[len(strip_prefix) + 1 :])
+            for fname in all_files
+        ]
 
     return all_files
 
@@ -991,13 +1043,15 @@ def parse_xpi(xpi, addon=None, minimal=False, user=None):
         # Note: we don't really know what happened, so even though we return a
         # generic message about the manifest, don't raise InvalidManifest. We
         # want the validation to stop there.
-        raise forms.ValidationError(ugettext(
-            'Could not parse the manifest file.'))
+        raise forms.ValidationError(
+            ugettext('Could not parse the manifest file.')
+        )
     except Exception:
         # As above, don't raise InvalidManifest here.
         log.error('XPI parse error', exc_info=True)
-        raise forms.ValidationError(ugettext(
-            'Could not parse the manifest file.'))
+        raise forms.ValidationError(
+            ugettext('Could not parse the manifest file.')
+        )
 
     if minimal:
         return xpi_info
@@ -1006,6 +1060,7 @@ def parse_xpi(xpi, addon=None, minimal=False, user=None):
 
 def check_xpi_info(xpi_info, addon=None, xpi_file=None, user=None):
     from olympia.addons.models import Addon, DeniedGuid
+
     guid = xpi_info['guid']
     is_webextension = xpi_info.get('is_webextension', False)
 
@@ -1022,65 +1077,87 @@ def check_xpi_info(xpi_info, addon=None, xpi_file=None, user=None):
     if guid:
         if user:
             deleted_guid_clashes = Addon.unfiltered.exclude(
-                authors__id=user.id).filter(guid=guid)
+                authors__id=user.id
+            ).filter(guid=guid)
         else:
             deleted_guid_clashes = Addon.unfiltered.filter(guid=guid)
 
         if addon and addon.guid != guid:
             msg = ugettext(
                 'The add-on ID in your manifest.json or install.rdf (%s) '
-                'does not match the ID of your add-on on AMO (%s)')
+                'does not match the ID of your add-on on AMO (%s)'
+            )
             raise forms.ValidationError(msg % (guid, addon.guid))
-        if (not addon and
+        if (
+            not addon
+            and
             # Non-deleted add-ons.
-            (Addon.objects.filter(guid=guid).exists() or
-             # DeniedGuid objects for deletions for Mozilla disabled add-ons
-             DeniedGuid.objects.filter(guid=guid).exists() or
-             # Deleted add-ons that don't belong to the uploader.
-             deleted_guid_clashes.exists())):
+            (
+                Addon.objects.filter(guid=guid).exists()
+                or
+                # DeniedGuid objects for deletions for Mozilla disabled add-ons
+                DeniedGuid.objects.filter(guid=guid).exists()
+                or
+                # Deleted add-ons that don't belong to the uploader.
+                deleted_guid_clashes.exists()
+            )
+        ):
             raise forms.ValidationError(ugettext('Duplicate add-on ID found.'))
     if len(xpi_info['version']) > 32:
         raise forms.ValidationError(
-            ugettext('Version numbers should have fewer than 32 characters.'))
+            ugettext('Version numbers should have fewer than 32 characters.')
+        )
     if not VERSION_RE.match(xpi_info['version']):
         raise forms.ValidationError(
-            ugettext('Version numbers should only contain letters, numbers, '
-                     'and these punctuation characters: +*.-_.'))
+            ugettext(
+                'Version numbers should only contain letters, numbers, '
+                'and these punctuation characters: +*.-_.'
+            )
+        )
 
     if is_webextension and xpi_info.get('type') == amo.ADDON_STATICTHEME:
         max_size = settings.MAX_STATICTHEME_SIZE
         if xpi_file and os.path.getsize(xpi_file.name) > max_size:
             raise forms.ValidationError(
-                ugettext(u'Maximum size for WebExtension themes is {0}.')
-                .format(filesizeformat(max_size)))
+                ugettext(
+                    u'Maximum size for WebExtension themes is {0}.'
+                ).format(filesizeformat(max_size))
+            )
 
     if xpi_file:
         # Make sure we pass in a copy of `xpi_info` since
         # `resolve_webext_translations` modifies data in-place
         translations = Addon.resolve_webext_translations(
-            xpi_info.copy(), xpi_file)
+            xpi_info.copy(), xpi_file
+        )
         verify_mozilla_trademark(translations['name'], user)
 
     # Parse the file to get and validate package data with the addon.
     if not acl.experiments_submission_allowed(user, xpi_info):
         raise forms.ValidationError(
-            ugettext(u'You cannot submit this type of add-on'))
+            ugettext(u'You cannot submit this type of add-on')
+        )
 
-    if not addon and not system_addon_submission_allowed(
-            user, xpi_info):
+    if not addon and not system_addon_submission_allowed(user, xpi_info):
         guids = ' or '.join(
-                '"' + guid + '"' for guid in amo.SYSTEM_ADDON_GUIDS)
+            '"' + guid + '"' for guid in amo.SYSTEM_ADDON_GUIDS
+        )
         raise forms.ValidationError(
-            ugettext(u'You cannot submit an add-on with a guid ending '
-                     u'%s' % guids))
+            ugettext(
+                u'You cannot submit an add-on with a guid ending '
+                u'%s' % guids
+            )
+        )
 
     if not mozilla_signed_extension_submission_allowed(user, xpi_info):
         raise forms.ValidationError(
-            ugettext(u'You cannot submit a Mozilla Signed Extension'))
+            ugettext(u'You cannot submit a Mozilla Signed Extension')
+        )
 
     if not acl.langpack_submission_allowed(user, xpi_info):
         raise forms.ValidationError(
-            ugettext('You cannot submit a language pack'))
+            ugettext('You cannot submit a language pack')
+        )
 
     return xpi_info
 
@@ -1111,12 +1188,14 @@ def parse_addon(pkg, addon=None, user=None, minimal=False):
         parsed = parse_xpi(pkg, addon, minimal=minimal, user=user)
     else:
         valid_extensions_string = u'(%s)' % u', '.join(
-            amo.VALID_ADDON_FILE_EXTENSIONS)
+            amo.VALID_ADDON_FILE_EXTENSIONS
+        )
         raise UnsupportedFileType(
             ugettext(
                 'Unsupported file type, please upload a supported '
-                'file {extensions}.'.format(
-                    extensions=valid_extensions_string)))
+                'file {extensions}.'.format(extensions=valid_extensions_string)
+            )
+        )
 
     if not minimal:
         if user is None:
@@ -1128,7 +1207,8 @@ def parse_addon(pkg, addon=None, user=None, minimal=False):
         if addon and addon.type != parsed['type']:
             msg = ugettext(
                 'The type (%s) does not match the type of your add-on on '
-                'AMO (%s)')
+                'AMO (%s)'
+            )
             raise forms.ValidationError(msg % (parsed['type'], addon.type))
     return parsed
 
@@ -1159,7 +1239,8 @@ def update_version_number(file_obj, new_version_number):
                 content = source.read(file_.filename)
                 if file_.filename == 'manifest.json':
                     content = _update_version_in_json_manifest(
-                        content, new_version_number)
+                        content, new_version_number
+                    )
                 dest.writestr(file_, content)
     # Move the updated file to the original file.
     shutil.move(updated, file_obj.file_path)
@@ -1227,9 +1308,11 @@ def extract_translations(file_obj):
             # see https://developer.chrome.com/extensions/i18n#overview-locales
             # for more details on the format.
             locales = {
-                name.split('/')[1] for name in file_list
-                if name.startswith('_locales/') and
-                name.endswith('/messages.json')}
+                name.split('/')[1]
+                for name in file_list
+                if name.startswith('_locales/')
+                and name.endswith('/messages.json')
+            }
 
             for locale in locales:
                 corrected_locale = find_language(locale)
@@ -1312,12 +1395,13 @@ def get_background_images(file_obj, theme_data, header_only=False):
             return {}
     images_dict = theme_data.get('images', {})
     # Get the reference in the manifest.  headerURL is the deprecated variant.
-    header_url = images_dict.get(
-        'theme_frame', images_dict.get('headerURL'))
+    header_url = images_dict.get('theme_frame', images_dict.get('headerURL'))
     # And any additional backgrounds too.
     additional_urls = (
-        images_dict.get('additional_backgrounds', []) if not header_only
-        else [])
+        images_dict.get('additional_backgrounds', [])
+        if not header_only
+        else []
+    )
     image_urls = [header_url] + additional_urls
     images = {}
     try:
@@ -1371,7 +1455,7 @@ def atomic_lock(lock_dir, lock_name, lifetime=60):
         release_time = lock._releasetime
         max_release_time = release_time + flufl.lock._lockfile.CLOCK_SLOP
 
-        if (release_time != -1 and datetime.now() > max_release_time):
+        if release_time != -1 and datetime.now() > max_release_time:
             # Break the lock and try to aquire again
             lock._break()
             lock.lock(timeout=timedelta(seconds=0))

@@ -5,7 +5,6 @@ from olympia.amo.urlresolvers import reverse
 
 
 class TestVersionAdmin(TestCase):
-
     def test_authorized_user_has_access(self):
         addon = addon_factory()
         version = addon.current_version

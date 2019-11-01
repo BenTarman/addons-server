@@ -10,7 +10,7 @@ from .models import Collection, CollectionAddon
 class CollectionAddonInline(admin.TabularInline):
     model = CollectionAddon
     raw_id_fields = ('addon',)
-    exclude = ('user', )
+    exclude = ('user',)
     view_on_site = False
     # FIXME: leaving 'comments' editable seems to break uniqueness checks for
     # some reason, even though it's picked up as a translated fields correctly.
@@ -21,8 +21,8 @@ class CollectionAddonInline(admin.TabularInline):
     # can edit a collection, you can edit/remove the add-ons inside it.
     def has_change_permission(self, request, obj=None):
         return CollectionAdmin(
-            Collection, self.admin_site).has_change_permission(
-                request, obj=getattr(obj, 'collection', None))
+            Collection, self.admin_site
+        ).has_change_permission(request, obj=getattr(obj, 'collection', None))
 
     def has_delete_permission(self, request, obj=None):
         # For deletion we use the *change* permission to allow curators to
@@ -31,14 +31,27 @@ class CollectionAddonInline(admin.TabularInline):
 
     def has_add_permission(self, request):
         return CollectionAdmin(Collection, self.admin_site).has_add_permission(
-            request)
+            request
+        )
 
 
 class CollectionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'addon_count',)
+    list_display = (
+        'name',
+        'slug',
+        'addon_count',
+    )
     list_filter = ('type', 'listed')
-    fields = ('name', 'slug', 'uuid', 'listed', 'type', 'application',
-              'default_locale', 'author')
+    fields = (
+        'name',
+        'slug',
+        'uuid',
+        'listed',
+        'type',
+        'application',
+        'default_locale',
+        'author',
+    )
     raw_id_fields = ('author',)
     readonly_fields = ('uuid',)
     inlines = (CollectionAddonInline,)
@@ -49,28 +62,33 @@ class CollectionAdmin(admin.ModelAdmin):
     # collections as well as their own (allowing them to transfer them to
     # the mozilla user) through the admin, as well as create new ones.
     def has_module_permission(self, request):
-        return (
-            acl.action_allowed(request, amo.permissions.ADMIN_CURATION) or
-            super(CollectionAdmin, self).has_module_permission(request))
+        return acl.action_allowed(
+            request, amo.permissions.ADMIN_CURATION
+        ) or super(CollectionAdmin, self).has_module_permission(request)
 
     def has_change_permission(self, request, obj=None):
         user = request.user
         should_allow_curators = (
             # Changelist, allowed for convenience, should be harmless.
-            obj is None or
+            obj is None
+            or
             # Mozilla collection or their own.
-            obj.author and obj.author.pk in (settings.TASK_USER_ID, user.pk))
+            obj.author
+            and obj.author.pk in (settings.TASK_USER_ID, user.pk)
+        )
 
         return (
-            should_allow_curators and acl.action_allowed(
-                request, amo.permissions.ADMIN_CURATION) or
-            super(CollectionAdmin, self).has_change_permission(
-                request, obj=obj))
+            should_allow_curators
+            and acl.action_allowed(request, amo.permissions.ADMIN_CURATION)
+            or super(CollectionAdmin, self).has_change_permission(
+                request, obj=obj
+            )
+        )
 
     def has_add_permission(self, request):
-        return (
-            acl.action_allowed(request, amo.permissions.ADMIN_CURATION) or
-            super(CollectionAdmin, self).has_add_permission(request))
+        return acl.action_allowed(
+            request, amo.permissions.ADMIN_CURATION
+        ) or super(CollectionAdmin, self).has_add_permission(request)
 
 
 admin.site.register(Collection, CollectionAdmin)

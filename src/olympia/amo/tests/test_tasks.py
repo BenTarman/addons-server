@@ -31,7 +31,8 @@ class TestSyncObjectToBasket(TestCase):
         responses.add(
             responses.POST,
             'https://basket.allizom.org/amo-sync/addon/',
-            json=True)
+            json=True,
+        )
         with override_switch('basket-amo-sync', active=False):
             # Gotta deactivate the sync when calling addon_factory() because
             # the change to _current_version inside will trigger a sync.
@@ -52,7 +53,8 @@ class TestSyncObjectToBasket(TestCase):
             responses.POST,
             'https://basket.allizom.org/amo-sync/addon/',
             json=True,
-            status=403)
+            status=403,
+        )
         with override_switch('basket-amo-sync', active=False):
             # Gotta deactivate the sync when calling addon_factory() because
             # the change to _current_version inside will trigger a sync.
@@ -74,7 +76,8 @@ class TestSyncObjectToBasket(TestCase):
         responses.add(
             responses.POST,
             'https://basket.allizom.org/amo-sync/userprofile/',
-            json=True)
+            json=True,
+        )
         user = user_factory()
         sync_object_to_basket('userprofile', user.pk)
         assert len(responses.calls) == 1

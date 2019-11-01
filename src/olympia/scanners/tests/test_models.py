@@ -70,8 +70,7 @@ class TestScannerResult(TestCase):
     def test_save_set_has_matches(self):
         result = self.create_yara_result()
         rule = ScannerRule.objects.create(
-            name='some rule name',
-            scanner=result.scanner
+            name='some rule name', scanner=result.scanner
         )
 
         result.has_matches = None

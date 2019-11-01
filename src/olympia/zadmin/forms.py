@@ -8,8 +8,7 @@ import olympia.core.logger
 
 from olympia import amo
 from olympia.addons.models import Addon
-from olympia.bandwagon.models import (
-    Collection, FeaturedCollection)
+from olympia.bandwagon.models import Collection, FeaturedCollection
 from olympia.core.languages import LANGUAGE_MAPPING
 from olympia.files.models import File
 
@@ -21,7 +20,8 @@ log = olympia.core.logger.getLogger(LOGGER_NAME)
 class FeaturedCollectionForm(forms.ModelForm):
     LOCALES = (('', u'(Default Locale)'),) + tuple(
         (idx, LANGUAGE_MAPPING[idx]['native'])
-        for idx in settings.LANGUAGE_MAPPING)
+        for idx in settings.LANGUAGE_MAPPING
+    )
 
     application = forms.ChoiceField(choices=amo.APPS_CHOICES)
     collection = forms.CharField(widget=forms.HiddenInput)
@@ -34,10 +34,12 @@ class FeaturedCollectionForm(forms.ModelForm):
     def clean_collection(self):
         application = self.cleaned_data.get('application', None)
         collection = self.cleaned_data.get('collection', None)
-        if not Collection.objects.filter(id=collection,
-                                         application=application).exists():
+        if not Collection.objects.filter(
+            id=collection, application=application
+        ).exists():
             raise forms.ValidationError(
-                u'Invalid collection for this application.')
+                u'Invalid collection for this application.'
+            )
         return collection
 
     def save(self, commit=False):
@@ -49,22 +51,24 @@ class FeaturedCollectionForm(forms.ModelForm):
 
 
 class BaseFeaturedCollectionFormSet(BaseModelFormSet):
-
     def __init__(self, *args, **kw):
         super(BaseFeaturedCollectionFormSet, self).__init__(*args, **kw)
         for form in self.initial_forms:
             try:
-                form.initial['collection'] = (
-                    FeaturedCollection.objects
-                    .get(id=form.instance.id).collection.id)
+                form.initial['collection'] = FeaturedCollection.objects.get(
+                    id=form.instance.id
+                ).collection.id
             except (FeaturedCollection.DoesNotExist, Collection.DoesNotExist):
                 form.initial['collection'] = None
 
 
 FeaturedCollectionFormSet = modelformset_factory(
     FeaturedCollection,
-    form=FeaturedCollectionForm, formset=BaseFeaturedCollectionFormSet,
-    can_delete=True, extra=0)
+    form=FeaturedCollectionForm,
+    formset=BaseFeaturedCollectionFormSet,
+    can_delete=True,
+    extra=0,
+)
 
 
 class AddonStatusForm(ModelForm):
@@ -82,9 +86,11 @@ class FileStatusForm(ModelForm):
         changed = not self.cleaned_data['status'] == self.instance.status
         if changed and self.instance.version.deleted:
             raise forms.ValidationError(
-                ugettext('Deleted versions can`t be changed.'))
+                ugettext('Deleted versions can`t be changed.')
+            )
         return self.cleaned_data['status']
 
 
-FileFormSet = modelformset_factory(File, form=FileStatusForm,
-                                   formset=BaseModelFormSet, extra=0)
+FileFormSet = modelformset_factory(
+    File, form=FileStatusForm, formset=BaseModelFormSet, extra=0
+)

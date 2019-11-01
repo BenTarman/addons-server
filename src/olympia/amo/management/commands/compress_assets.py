@@ -16,7 +16,8 @@ from olympia.lib.jingo_minify_helpers import ensure_path_exists
 def run_command(command):
     """Run a command and correctly poll the output and write that to stdout"""
     process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+        command, stdout=subprocess.PIPE, shell=True, universal_newlines=True
+    )
     while True:
         output = process.stdout.readline()
         if output == '' and process.poll() is not None:
@@ -27,7 +28,7 @@ def run_command(command):
 
 
 class Command(BaseCommand):
-    help = ('Compresses css and js assets defined in settings.MINIFY_BUNDLES')
+    help = 'Compresses css and js assets defined in settings.MINIFY_BUNDLES'
 
     # This command must not do any system checks because Django runs db-field
     # related checks since 1.10 which require a working MySQL connection.
@@ -44,8 +45,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         """Handle command arguments."""
         parser.add_argument(
-            '--force', action='store_true',
-            help='Ignores modified/created dates and forces compression.')
+            '--force',
+            action='store_true',
+            help='Ignores modified/created dates and forces compression.',
+        )
 
     def generate_build_id(self):
         return uuid.uuid4().hex[:8]
@@ -53,10 +56,13 @@ class Command(BaseCommand):
     def update_hashes(self):
         # Adds a time based hash on to the build id.
         self.build_id = '%s-%s' % (
-            self.generate_build_id(), hex(int(time.time()))[2:])
+            self.generate_build_id(),
+            hex(int(time.time()))[2:],
+        )
 
         build_id_file = os.path.realpath(
-            os.path.join(settings.ROOT, 'build.py'))
+            os.path.join(settings.ROOT, 'build.py')
+        )
 
         with open(build_id_file, 'w') as f:
             f.write('BUILD_ID_CSS = "%s"\n' % self.build_id)
@@ -75,11 +81,17 @@ class Command(BaseCommand):
             for name, files in bundle.items():
                 # Set the paths to the files.
                 concatted_file = os.path.join(
-                    settings.ROOT, 'static',
-                    ftype, '%s-all.%s' % (name, ftype,))
+                    settings.ROOT,
+                    'static',
+                    ftype,
+                    '%s-all.%s' % (name, ftype,),
+                )
                 compressed_file = os.path.join(
-                    settings.ROOT, 'static',
-                    ftype, '%s-min.%s' % (name, ftype,))
+                    settings.ROOT,
+                    'static',
+                    ftype,
+                    '%s-min.%s' % (name, ftype,),
+                )
 
                 ensure_path_exists(concatted_file)
                 ensure_path_exists(compressed_file)
@@ -96,13 +108,14 @@ class Command(BaseCommand):
                 if len(files_all) == 0:
                     raise CommandError(
                         'No input files specified in '
-                        'MINIFY_BUNDLES["%s"]["%s"] in settings.py!' %
-                        (ftype, name)
+                        'MINIFY_BUNDLES["%s"]["%s"] in settings.py!'
+                        % (ftype, name)
                     )
-                run_command('cat {files} > {tmp}'.format(
-                    files=' '.join(files_all),
-                    tmp=tmp_concatted
-                ))
+                run_command(
+                    'cat {files} > {tmp}'.format(
+                        files=' '.join(files_all), tmp=tmp_concatted
+                    )
+                )
 
                 # Cache bust individual images in the CSS.
                 if ftype == 'css':
@@ -116,8 +129,9 @@ class Command(BaseCommand):
                     self._minify(ftype, concatted_file, compressed_file)
                 else:
                     print(
-                        'File unchanged, skipping minification of %s' % (
-                            concatted_file))
+                        'File unchanged, skipping minification of %s'
+                        % (concatted_file)
+                    )
                     self.minify_skipped += 1
 
         # Write out the hashes
@@ -125,8 +139,9 @@ class Command(BaseCommand):
 
         if self.minify_skipped:
             print(
-                'Unchanged files skipped for minification: %s' % (
-                    self.minify_skipped))
+                'Unchanged files skipped for minification: %s'
+                % (self.minify_skipped)
+            )
 
     def _preprocess_file(self, filename):
         """Preprocess files and return new filenames."""
@@ -135,10 +150,11 @@ class Command(BaseCommand):
         target = source
         if css_bin:
             target = '%s.css' % source
-            run_command('{lessc} {source} {target}'.format(
-                lessc=css_bin,
-                source=str(source),
-                target=str(target)))
+            run_command(
+                '{lessc} {source} {target}'.format(
+                    lessc=css_bin, source=str(source), target=str(target)
+                )
+            )
         return target
 
     def _is_changed(self, concatted_file):
@@ -147,9 +163,9 @@ class Command(BaseCommand):
             return True
 
         tmp_concatted = '%s.tmp' % concatted_file
-        file_exists = (
-            os.path.exists(concatted_file) and
-            os.path.getsize(concatted_file) == os.path.getsize(tmp_concatted))
+        file_exists = os.path.exists(concatted_file) and os.path.getsize(
+            concatted_file
+        ) == os.path.getsize(tmp_concatted)
         if file_exists:
             orig_hash = self._file_hash(concatted_file)
             temp_hash = self._file_hash(tmp_concatted)
@@ -166,7 +182,8 @@ class Command(BaseCommand):
     def _cachebust(self, css_file, bundle_name):
         """Cache bust images.  Return a new bundle hash."""
         self.stdout.write(
-            'Cache busting images in %s\n' % re.sub('.tmp$', '', css_file))
+            'Cache busting images in %s\n' % re.sub('.tmp$', '', css_file)
+        )
 
         if not os.path.exists(css_file):
             return
@@ -189,7 +206,8 @@ class Command(BaseCommand):
 
         if self.missing_files:
             self.stdout.write(
-                ' - Error finding %s images\n' % (self.missing_files,))
+                ' - Error finding %s images\n' % (self.missing_files,)
+            )
             self.missing_files = 0
 
         return file_hash
@@ -198,19 +216,22 @@ class Command(BaseCommand):
         """Run the proper minifier on the file."""
         if ftype == 'js' and hasattr(settings, 'UGLIFY_BIN'):
             opts = {'method': 'UglifyJS', 'bin': settings.UGLIFY_BIN}
-            run_command('{uglify} -v -o {target} {source} -m'.format(
-                uglify=opts['bin'],
-                target=file_out,
-                source=file_in))
+            run_command(
+                '{uglify} -v -o {target} {source} -m'.format(
+                    uglify=opts['bin'], target=file_out, source=file_in
+                )
+            )
         elif ftype == 'css' and hasattr(settings, 'CLEANCSS_BIN'):
             opts = {'method': 'clean-css', 'bin': settings.CLEANCSS_BIN}
-            run_command('{cleancss} -o {target} {source}'.format(
-                cleancss=opts['bin'],
-                target=file_out,
-                source=file_in))
+            run_command(
+                '{cleancss} -o {target} {source}'.format(
+                    cleancss=opts['bin'], target=file_out, source=file_in
+                )
+            )
 
         self.stdout.write(
-            'Minifying %s (using %s)\n' % (file_in, opts['method']))
+            'Minifying %s (using %s)\n' % (file_in, opts['method'])
+        )
 
     def _file_hash(self, url):
         """Open the file and get a hash of it."""
@@ -235,7 +256,6 @@ class Command(BaseCommand):
             return 'url(%s)' % url
 
         url = url.split('?')[0]
-        full_url = os.path.join(
-            settings.ROOT, os.path.dirname(parent), url)
+        full_url = os.path.join(settings.ROOT, os.path.dirname(parent), url)
 
         return 'url(%s?%s)' % (url, self._file_hash(full_url))

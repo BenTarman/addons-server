@@ -17,7 +17,8 @@ class HeroModuleInlineFormSet(BaseInlineFormSet):
         super().clean()
         if len(self.forms) != 3:
             raise ValidationError(
-                'There must be exactly 3 modules in this shelf.')
+                'There must be exactly 3 modules in this shelf.'
+            )
 
 
 class SecondaryHeroModuleInline(admin.StackedInline):
@@ -31,9 +32,8 @@ class SecondaryHeroModuleInline(admin.StackedInline):
 
 class SecondaryHeroAdmin(admin.ModelAdmin):
     class Media:
-        css = {
-            'all': ('css/admin/discovery.css',)
-        }
+        css = {'all': ('css/admin/discovery.css',)}
+
     list_display = ('headline', 'description', 'enabled')
     inlines = [SecondaryHeroModuleInline]
     view_on_site = False

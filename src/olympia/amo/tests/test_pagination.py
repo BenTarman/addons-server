@@ -1,5 +1,9 @@
 from django.core.paginator import (
-    EmptyPage, InvalidPage, PageNotAnInteger, Paginator)
+    EmptyPage,
+    InvalidPage,
+    PageNotAnInteger,
+    Paginator,
+)
 
 import pytest
 
@@ -69,7 +73,6 @@ def test_dots():
 
 
 class TestSearchPaginator(TestCase):
-
     def test_single_hit(self):
         """Test the ESPaginator only queries ES one time."""
         mocked_qs = MagicMock()
@@ -106,8 +109,9 @@ class TestSearchPaginator(TestCase):
         # unfortunately since `pytest.raises` won't check the exact
         # instance but also accepts parent exceptions inherited.
         assert (
-            str(exc.value) ==
-            'That page number is too high for the current page size')
+            str(exc.value)
+            == 'That page number is too high for the current page size'
+        )
         assert isinstance(exc.value, InvalidPage)
 
         with self.assertRaises(EmptyPage):
@@ -141,7 +145,6 @@ class TestSearchPaginator(TestCase):
 
 
 class TestNonDSLMode(ESTestCase):
-
     def test_count_non_dsl_mode(self):
         addon_factory()
         addon_factory()

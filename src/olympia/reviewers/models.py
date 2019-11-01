@@ -37,12 +37,21 @@ log = olympia.core.logger.getLogger('z.reviewers')
 
 
 VIEW_QUEUE_FLAGS = (
-    ('needs_admin_code_review', 'needs-admin-code-review',
-        _('Needs Admin Code Review')),
-    ('needs_admin_content_review', 'needs-admin-content-review',
-        _('Needs Admin Content Review')),
-    ('needs_admin_theme_review', 'needs-admin-theme-review',
-        _('Needs Admin Static Theme Review')),
+    (
+        'needs_admin_code_review',
+        'needs-admin-code-review',
+        _('Needs Admin Code Review'),
+    ),
+    (
+        'needs_admin_content_review',
+        'needs-admin-content-review',
+        _('Needs Admin Content Review'),
+    ),
+    (
+        'needs_admin_theme_review',
+        'needs-admin-theme-review',
+        _('Needs Admin Static Theme Review'),
+    ),
     ('is_restart_required', 'is_restart_required', _('Requires Restart')),
     ('pending_info_request', 'info', _('More Information Requested')),
     ('expired_info_request', 'expired-info', _('Expired Information Request')),
@@ -66,9 +75,11 @@ def get_reviewing_cache(addon_id):
 def set_reviewing_cache(addon_id, user_id):
     # We want to save it for twice as long as the ping interval,
     # just to account for latency and the like.
-    cache.set(get_reviewing_cache_key(addon_id),
-              user_id,
-              amo.REVIEWER_VIEWING_INTERVAL * 2)
+    cache.set(
+        get_reviewing_cache_key(addon_id),
+        user_id,
+        amo.REVIEWER_VIEWING_INTERVAL * 2,
+    )
 
 
 class CannedResponse(ModelBase):
@@ -77,13 +88,16 @@ class CannedResponse(ModelBase):
     response = models.TextField()
     sort_group = models.CharField(max_length=255)
     type = models.PositiveIntegerField(
-        choices=amo.CANNED_RESPONSE_TYPE_CHOICES.items(), db_index=True,
-        default=0)
+        choices=amo.CANNED_RESPONSE_TYPE_CHOICES.items(),
+        db_index=True,
+        default=0,
+    )
 
     # Category is used only by code-manager
     category = models.PositiveIntegerField(
         choices=amo.CANNED_RESPONSE_CATEGORY_CHOICES.items(),
-        default=amo.CANNED_RESPONSE_CATEGORY_OTHER)
+        default=amo.CANNED_RESPONSE_CATEGORY_OTHER,
+    )
 
     class Meta:
         db_table = 'cannedresponses'
@@ -95,15 +109,21 @@ class CannedResponse(ModelBase):
 def get_flags(addon, version):
     """Return a list of tuples (indicating which flags should be displayed for
     a particular add-on."""
-    return [(cls, title) for (prop, cls, title) in VIEW_QUEUE_FLAGS
-            if getattr(version, prop, getattr(addon, prop, None))]
+    return [
+        (cls, title)
+        for (prop, cls, title) in VIEW_QUEUE_FLAGS
+        if getattr(version, prop, getattr(addon, prop, None))
+    ]
 
 
 def get_flags_for_row(record):
     """Like get_flags(), but for the queue pages, using fields directly
     returned by the queues SQL query."""
-    return [(cls, title) for (prop, cls, title) in VIEW_QUEUE_FLAGS
-            if getattr(record, prop)]
+    return [
+        (cls, title)
+        for (prop, cls, title) in VIEW_QUEUE_FLAGS
+        if getattr(record, prop)
+    ]
 
 
 class ViewQueue(RawSQLModel):
@@ -129,34 +149,54 @@ class ViewQueue(RawSQLModel):
 
     def base_query(self):
         return {
-            'select': OrderedDict([
-                ('id', 'addons.id'),
-                ('addon_name', 'tr.localized_string'),
-                ('addon_status', 'addons.status'),
-                ('addon_type_id', 'addons.addontype_id'),
-                ('addon_slug', 'addons.slug'),
-                ('needs_admin_code_review',
-                    'addons_addonreviewerflags.needs_admin_code_review'),
-                ('needs_admin_content_review',
-                    'addons_addonreviewerflags.needs_admin_content_review'),
-                ('needs_admin_theme_review',
-                    'addons_addonreviewerflags.needs_admin_theme_review'),
-                ('latest_version', 'versions.version'),
-                ('pending_info_request',
-                    'addons_addonreviewerflags.pending_info_request'),
-                ('expired_info_request', (
-                    'TIMEDIFF(addons_addonreviewerflags.pending_info_request,'
-                    'NOW()) < 0')),
-                ('is_restart_required', 'MAX(files.is_restart_required)'),
-                ('source', 'versions.source'),
-                ('is_webextension', 'MAX(files.is_webextension)'),
-                ('waiting_time_days',
-                    'TIMESTAMPDIFF(DAY, MAX(versions.nomination), NOW())'),
-                ('waiting_time_hours',
-                    'TIMESTAMPDIFF(HOUR, MAX(versions.nomination), NOW())'),
-                ('waiting_time_min',
-                    'TIMESTAMPDIFF(MINUTE, MAX(versions.nomination), NOW())'),
-            ]),
+            'select': OrderedDict(
+                [
+                    ('id', 'addons.id'),
+                    ('addon_name', 'tr.localized_string'),
+                    ('addon_status', 'addons.status'),
+                    ('addon_type_id', 'addons.addontype_id'),
+                    ('addon_slug', 'addons.slug'),
+                    (
+                        'needs_admin_code_review',
+                        'addons_addonreviewerflags.needs_admin_code_review',
+                    ),
+                    (
+                        'needs_admin_content_review',
+                        'addons_addonreviewerflags.needs_admin_content_review',
+                    ),
+                    (
+                        'needs_admin_theme_review',
+                        'addons_addonreviewerflags.needs_admin_theme_review',
+                    ),
+                    ('latest_version', 'versions.version'),
+                    (
+                        'pending_info_request',
+                        'addons_addonreviewerflags.pending_info_request',
+                    ),
+                    (
+                        'expired_info_request',
+                        (
+                            'TIMEDIFF(addons_addonreviewerflags.pending_info_request,'
+                            'NOW()) < 0'
+                        ),
+                    ),
+                    ('is_restart_required', 'MAX(files.is_restart_required)'),
+                    ('source', 'versions.source'),
+                    ('is_webextension', 'MAX(files.is_webextension)'),
+                    (
+                        'waiting_time_days',
+                        'TIMESTAMPDIFF(DAY, MAX(versions.nomination), NOW())',
+                    ),
+                    (
+                        'waiting_time_hours',
+                        'TIMESTAMPDIFF(HOUR, MAX(versions.nomination), NOW())',
+                    ),
+                    (
+                        'waiting_time_min',
+                        'TIMESTAMPDIFF(MINUTE, MAX(versions.nomination), NOW())',
+                    ),
+                ]
+            ),
             'from': [
                 'addons',
                 """
@@ -170,17 +210,18 @@ class ViewQueue(RawSQLModel):
                 JOIN translations AS tr ON (
                     tr.id = addons.name
                     AND tr.locale = addons.defaultlocale)
-                """
+                """,
             ],
             'where': [
                 'NOT addons.inactive',  # disabled_by_user
                 'versions.channel = %s' % amo.RELEASE_CHANNEL_LISTED,
                 'files.status = %s' % amo.STATUS_AWAITING_REVIEW,
-                ('NOT ' if not self.recommendable_addons else '') +
-                '(discoitem.recommendable = True AND '
+                ('NOT ' if not self.recommendable_addons else '')
+                + '(discoitem.recommendable = True AND '
                 'discoitem.recommendable IS NOT NULL)',
             ],
-            'group_by': 'id'}
+            'group_by': 'id',
+        }
 
     @property
     def sources_provided(self):
@@ -213,7 +254,8 @@ class CombinedReviewQueueMixin:
     def base_query(self):
         query = super().base_query()
         query['where'].append(
-            f'addons.status IN ({_int_join(amo.VALID_ADDON_STATUSES)})')
+            f'addons.status IN ({_int_join(amo.VALID_ADDON_STATUSES)})'
+        )
         return query
 
 
@@ -221,11 +263,13 @@ class ExtensionQueueMixin:
     def base_query(self):
         query = super().base_query()
         types = _int_join(
-            set(amo.GROUP_TYPE_ADDON) - {amo.ADDON_SEARCH} | {amo.ADDON_THEME})
+            set(amo.GROUP_TYPE_ADDON) - {amo.ADDON_SEARCH} | {amo.ADDON_THEME}
+        )
         query['where'].append(
             f'((addons.addontype_id IN ({types}) '
             'AND files.is_webextension = 0) '
-            'OR addons_addonreviewerflags.auto_approval_disabled = 1)')
+            'OR addons_addonreviewerflags.auto_approval_disabled = 1)'
+        )
         return query
 
 
@@ -233,12 +277,14 @@ class ThemeQueueMixin:
     def base_query(self):
         query = super().base_query()
         query['where'].append(
-            'addons.addontype_id = %s' % amo.ADDON_STATICTHEME)
+            'addons.addontype_id = %s' % amo.ADDON_STATICTHEME
+        )
         return query
 
 
-class ViewExtensionQueue(ExtensionQueueMixin, CombinedReviewQueueMixin,
-                         ViewQueue):
+class ViewExtensionQueue(
+    ExtensionQueueMixin, CombinedReviewQueueMixin, ViewQueue
+):
     pass
 
 
@@ -246,8 +292,9 @@ class ViewRecommendedQueue(CombinedReviewQueueMixin, ViewQueue):
     recommendable_addons = True
 
 
-class ViewThemeFullReviewQueue(ThemeQueueMixin, FullReviewQueueMixin,
-                               ViewQueue):
+class ViewThemeFullReviewQueue(
+    ThemeQueueMixin, FullReviewQueueMixin, ViewQueue
+):
     pass
 
 
@@ -276,27 +323,35 @@ class ViewUnlistedAllList(RawSQLModel):
     def base_query(self):
         review_ids = ','.join([str(r) for r in amo.LOG_REVIEWER_REVIEW_ACTION])
         return {
-            'select': OrderedDict([
-                ('id', 'addons.id'),
-                ('addon_name', 'tr.localized_string'),
-                ('addon_status', 'addons.status'),
-                ('addon_slug', 'addons.slug'),
-                ('latest_version', 'versions.version'),
-                ('guid', 'addons.guid'),
-                ('_author_ids', 'GROUP_CONCAT(authors.user_id)'),
-                ('_author_usernames', 'GROUP_CONCAT(users.username)'),
-                ('needs_admin_code_review',
-                    'addons_addonreviewerflags.needs_admin_code_review'),
-                ('needs_admin_content_review',
-                    'addons_addonreviewerflags.needs_admin_content_review'),
-                ('needs_admin_theme_review',
-                    'addons_addonreviewerflags.needs_admin_theme_review'),
-                ('is_deleted', 'IF (addons.status=11, true, false)'),
-                ('version_date', 'versions.nomination'),
-                ('review_date', 'reviewed_versions.created'),
-                ('review_version_num', 'reviewed_versions.version'),
-                ('review_log_id', 'reviewed_versions.log_id'),
-            ]),
+            'select': OrderedDict(
+                [
+                    ('id', 'addons.id'),
+                    ('addon_name', 'tr.localized_string'),
+                    ('addon_status', 'addons.status'),
+                    ('addon_slug', 'addons.slug'),
+                    ('latest_version', 'versions.version'),
+                    ('guid', 'addons.guid'),
+                    ('_author_ids', 'GROUP_CONCAT(authors.user_id)'),
+                    ('_author_usernames', 'GROUP_CONCAT(users.username)'),
+                    (
+                        'needs_admin_code_review',
+                        'addons_addonreviewerflags.needs_admin_code_review',
+                    ),
+                    (
+                        'needs_admin_content_review',
+                        'addons_addonreviewerflags.needs_admin_content_review',
+                    ),
+                    (
+                        'needs_admin_theme_review',
+                        'addons_addonreviewerflags.needs_admin_theme_review',
+                    ),
+                    ('is_deleted', 'IF (addons.status=11, true, false)'),
+                    ('version_date', 'versions.nomination'),
+                    ('review_date', 'reviewed_versions.created'),
+                    ('review_version_num', 'reviewed_versions.version'),
+                    ('review_log_id', 'reviewed_versions.log_id'),
+                ]
+            ),
             'from': [
                 'addons',
                 """
@@ -330,9 +385,11 @@ class ViewUnlistedAllList(RawSQLModel):
                     ORDER BY id desc
                     ) AS reviewed_versions
                     ON reviewed_versions.addon_id = addons.id
-                """.format(task_user=settings.TASK_USER_ID,
-                           review_actions=review_ids,
-                           channel=amo.RELEASE_CHANNEL_UNLISTED),
+                """.format(
+                    task_user=settings.TASK_USER_ID,
+                    review_actions=review_ids,
+                    channel=amo.RELEASE_CHANNEL_UNLISTED,
+                ),
             ],
             'where': [
                 'NOT addons.inactive',  # disabled_by_user
@@ -341,9 +398,10 @@ class ViewUnlistedAllList(RawSQLModel):
                     OR
                     (reviewed_versions.id IS NULL))
                 """,
-                'addons.status <> %s' % amo.STATUS_DISABLED
+                'addons.status <> %s' % amo.STATUS_DISABLED,
             ],
-            'group_by': 'id'}
+            'group_by': 'id',
+        }
 
     @property
     def authors(self):
@@ -361,25 +419,28 @@ class PerformanceGraph(RawSQLModel):
 
     def base_query(self):
         request_ver = amo.LOG.REQUEST_VERSION.id
-        review_ids = [str(r) for r in amo.LOG_REVIEWER_REVIEW_ACTION
-                      if r != request_ver]
+        review_ids = [
+            str(r) for r in amo.LOG_REVIEWER_REVIEW_ACTION if r != request_ver
+        ]
 
         return {
-            'select': OrderedDict([
-                ('yearmonth',
-                 "DATE_FORMAT(`log_activity`.`created`, '%%Y-%%m')"),
-                ('approval_created', '`log_activity`.`created`'),
-                ('user_id', '`log_activity`.`user_id`'),
-                ('total', 'COUNT(*)')
-            ]),
-            'from': [
-                'log_activity',
-            ],
+            'select': OrderedDict(
+                [
+                    (
+                        'yearmonth',
+                        "DATE_FORMAT(`log_activity`.`created`, '%%Y-%%m')",
+                    ),
+                    ('approval_created', '`log_activity`.`created`'),
+                    ('user_id', '`log_activity`.`user_id`'),
+                    ('total', 'COUNT(*)'),
+                ]
+            ),
+            'from': ['log_activity',],
             'where': [
                 'log_activity.action in (%s)' % ','.join(review_ids),
-                'user_id <> %s' % settings.TASK_USER_ID  # No auto-approvals.
+                'user_id <> %s' % settings.TASK_USER_ID,  # No auto-approvals.
             ],
-            'group_by': 'yearmonth, user_id'
+            'group_by': 'yearmonth, user_id',
         }
 
 
@@ -391,25 +452,35 @@ class ReviewerSubscription(ModelBase):
         db_table = 'editor_subscriptions'
 
     def send_notification(self, version):
-        user_log.info('Sending addon update notice to %s for %s' %
-                      (self.user.email, self.addon.pk))
+        user_log.info(
+            'Sending addon update notice to %s for %s'
+            % (self.user.email, self.addon.pk)
+        )
         context = {
             'name': self.addon.name,
-            'url': absolutify(reverse('addons.detail', args=[self.addon.pk],
-                                      add_prefix=False)),
+            'url': absolutify(
+                reverse(
+                    'addons.detail', args=[self.addon.pk], add_prefix=False
+                )
+            ),
             'number': version.version,
-            'review': absolutify(reverse('reviewers.review',
-                                         args=[self.addon.pk],
-                                         add_prefix=False)),
+            'review': absolutify(
+                reverse(
+                    'reviewers.review', args=[self.addon.pk], add_prefix=False
+                )
+            ),
             'SITE_URL': settings.SITE_URL,
         }
         # Not being localised because we don't know the reviewer's locale.
         subject = 'Mozilla Add-ons: %s Updated' % self.addon.name
         template = loader.get_template('reviewers/emails/notify_update.ltxt')
-        send_mail(subject, template.render(context),
-                  recipient_list=[self.user.email],
-                  from_email=settings.ADDONS_EMAIL,
-                  use_deny_list=False)
+        send_mail(
+            subject,
+            template.render(context),
+            recipient_list=[self.user.email],
+            from_email=settings.ADDONS_EMAIL,
+            use_deny_list=False,
+        )
 
 
 def send_notifications(sender=None, instance=None, signal=None, **kw):
@@ -424,8 +495,11 @@ def send_notifications(sender=None, instance=None, signal=None, **kw):
     for subscriber in subscribers:
         user = subscriber.user
         is_reviewer = (
-            user and not user.deleted and user.email and
-            acl.is_user_any_kind_of_reviewer(user))
+            user
+            and not user.deleted
+            and user.email
+            and acl.is_user_any_kind_of_reviewer(user)
+        )
         if is_reviewer:
             subscriber.send_notification(instance)
 
@@ -436,17 +510,27 @@ version_uploaded.connect(send_notifications, dispatch_uid='send_notifications')
 class ReviewerScore(ModelBase):
     id = PositiveAutoField(primary_key=True)
     user = models.ForeignKey(
-        UserProfile, related_name='_reviewer_scores', on_delete=models.CASCADE)
+        UserProfile, related_name='_reviewer_scores', on_delete=models.CASCADE
+    )
     addon = models.ForeignKey(
-        Addon, blank=True, null=True, related_name='+',
-        on_delete=models.CASCADE)
+        Addon,
+        blank=True,
+        null=True,
+        related_name='+',
+        on_delete=models.CASCADE,
+    )
     version = models.ForeignKey(
-        Version, blank=True, null=True, related_name='+',
-        on_delete=models.CASCADE)
+        Version,
+        blank=True,
+        null=True,
+        related_name='+',
+        on_delete=models.CASCADE,
+    )
     score = models.IntegerField()
     # For automated point rewards.
-    note_key = models.SmallIntegerField(choices=amo.REVIEWED_CHOICES.items(),
-                                        default=0)
+    note_key = models.SmallIntegerField(
+        choices=amo.REVIEWED_CHOICES.items(), default=0
+    )
     # For manual point rewards with a note.
     note = models.CharField(max_length=255)
 
@@ -454,14 +538,16 @@ class ReviewerScore(ModelBase):
         db_table = 'reviewer_scores'
         ordering = ('-created',)
         indexes = [
-            models.Index(fields=('addon',),
-                         name='reviewer_scores_addon_id_fk'),
-            models.Index(fields=('created',),
-                         name='reviewer_scores_created_idx'),
-            models.Index(fields=('user',),
-                         name='reviewer_scores_user_id_idx'),
-            models.Index(fields=('version',),
-                         name='reviewer_scores_version_id'),
+            models.Index(
+                fields=('addon',), name='reviewer_scores_addon_id_fk'
+            ),
+            models.Index(
+                fields=('created',), name='reviewer_scores_created_idx'
+            ),
+            models.Index(fields=('user',), name='reviewer_scores_user_id_idx'),
+            models.Index(
+                fields=('version',), name='reviewer_scores_version_id'
+            ),
         ]
 
     @classmethod
@@ -476,8 +562,14 @@ class ReviewerScore(ModelBase):
             return '%s:%s' % (ns_key, key)
 
     @classmethod
-    def get_event(cls, addon, status, version=None, post_review=False,
-                  content_review=False):
+    def get_event(
+        cls,
+        addon,
+        status,
+        version=None,
+        post_review=False,
+        content_review=False,
+    ):
         """Return the review event type constant.
 
         This is determined by the addon.type and the queue the addon is
@@ -503,7 +595,9 @@ class ReviewerScore(ModelBase):
             except AutoApprovalSummary.DoesNotExist as exception:
                 log.exception(
                     'No such version/auto approval summary when determining '
-                    'event type to award points: %r', exception)
+                    'event type to award points: %r',
+                    exception,
+                )
                 weight = 0
 
             if addon.type == amo.ADDON_DICT:
@@ -528,8 +622,11 @@ class ReviewerScore(ModelBase):
             else:
                 queue = ''
 
-            if (addon.type in [amo.ADDON_EXTENSION, amo.ADDON_PLUGIN,
-                               amo.ADDON_API] and queue):
+            if (
+                addon.type
+                in [amo.ADDON_EXTENSION, amo.ADDON_PLUGIN, amo.ADDON_API]
+                and queue
+            ):
                 reviewed_score_name = 'REVIEWED_ADDON_%s' % queue
             elif addon.type == amo.ADDON_DICT and queue:
                 reviewed_score_name = 'REVIEWED_DICT_%s' % queue
@@ -547,9 +644,16 @@ class ReviewerScore(ModelBase):
         return None
 
     @classmethod
-    def award_points(cls, user, addon, status, version=None,
-                     post_review=False, content_review=False,
-                     extra_note=''):
+    def award_points(
+        cls,
+        user,
+        addon,
+        status,
+        version=None,
+        post_review=False,
+        content_review=False,
+        extra_note='',
+    ):
         """Awards points to user based on an event and the queue.
 
         `event` is one of the `REVIEWED_` keys in constants.
@@ -568,31 +672,45 @@ class ReviewerScore(ModelBase):
         # still a webextension and should treated as such, regardless of
         # auto-approval being disabled or not.
         # As a hack, we set 'post_review' to True.
-        if (version and
-                version.is_webextension and
-                addon.type in amo.GROUP_TYPE_ADDON):
+        if (
+            version
+            and version.is_webextension
+            and addon.type in amo.GROUP_TYPE_ADDON
+        ):
             post_review = True
 
         user_log.info(
-            (u'Determining award points for user %s for version %s of addon %s'
-             % (user, version, addon.id)).encode('utf-8'))
+            (
+                u'Determining award points for user %s for version %s of addon %s'
+                % (user, version, addon.id)
+            ).encode('utf-8')
+        )
 
         event = cls.get_event(
-            addon, status, version=version, post_review=post_review,
-            content_review=content_review)
+            addon,
+            status,
+            version=version,
+            post_review=post_review,
+            content_review=content_review,
+        )
         score = amo.REVIEWED_SCORES.get(event)
 
         user_log.info(
-            (u'Determined %s award points (event: %s) for user %s for version '
-             u'%s of addon %s' % (score, event, user, version, addon.id))
-            .encode('utf-8'))
+            (
+                u'Determined %s award points (event: %s) for user %s for version '
+                u'%s of addon %s' % (score, event, user, version, addon.id)
+            ).encode('utf-8')
+        )
 
         # Add bonus to reviews greater than our limit to encourage fixing
         # old reviews. Does not apply to content-review/post-review at the
         # moment, because it would need to be calculated differently.
         award_overdue_bonus = (
-            version and version.nomination and
-            not post_review and not content_review)
+            version
+            and version.nomination
+            and not post_review
+            and not content_review
+        )
         if award_overdue_bonus:
             waiting_time_days = (datetime.now() - version.nomination).days
             days_over = waiting_time_days - amo.REVIEWED_OVERDUE_LIMIT
@@ -601,28 +719,39 @@ class ReviewerScore(ModelBase):
                 score = score + bonus
 
         if score is not None:
-            cls.objects.create(user=user, addon=addon, score=score,
-                               note_key=event, note=extra_note,
-                               version=version)
+            cls.objects.create(
+                user=user,
+                addon=addon,
+                score=score,
+                note_key=event,
+                note=extra_note,
+                version=version,
+            )
             cls.get_key(invalidate=True)
             user_log.info(
-                (u'Awarding %s points to user %s for "%s" for addon %s' % (
-                    score, user, amo.REVIEWED_CHOICES[event], addon.id))
-                .encode('utf-8'))
+                (
+                    u'Awarding %s points to user %s for "%s" for addon %s'
+                    % (score, user, amo.REVIEWED_CHOICES[event], addon.id)
+                ).encode('utf-8')
+            )
         return score
 
     @classmethod
     def award_moderation_points(cls, user, addon, review_id, undo=False):
         """Awards points to user based on moderated review."""
-        event = (amo.REVIEWED_ADDON_REVIEW if not undo else
-                 amo.REVIEWED_ADDON_REVIEW_POORLY)
+        event = (
+            amo.REVIEWED_ADDON_REVIEW
+            if not undo
+            else amo.REVIEWED_ADDON_REVIEW_POORLY
+        )
         score = amo.REVIEWED_SCORES.get(event)
 
         cls.objects.create(user=user, addon=addon, score=score, note_key=event)
         cls.get_key(invalidate=True)
         user_log.info(
-            u'Awarding %s points to user %s for "%s" for review %s' % (
-                score, user, amo.REVIEWED_CHOICES[event], review_id))
+            u'Awarding %s points to user %s for "%s" for review %s'
+            % (score, user, amo.REVIEWED_CHOICES[event], review_id)
+        )
 
     @classmethod
     def get_total(cls, user):
@@ -632,9 +761,11 @@ class ReviewerScore(ModelBase):
         if val is not None:
             return val
 
-        val = list(ReviewerScore.objects.filter(user=user)
-                                        .aggregate(total=Sum('score'))
-                                        .values())[0]
+        val = list(
+            ReviewerScore.objects.filter(user=user)
+            .aggregate(total=Sum('score'))
+            .values()
+        )[0]
         if val is None:
             val = 0
 
@@ -711,16 +842,19 @@ class ReviewerScore(ModelBase):
         (user_id, name, total).
         """
 
-        reviewers = (UserProfile.objects
-                                .filter(groups__name__startswith='Reviewers: ')
-                                .exclude(groups__name__in=('Staff', 'Admins',
-                                         'No Reviewer Incentives'))
-                                .distinct())
-        qs = (cls.objects
-                 .values_list('user__id')
-                 .filter(user__in=reviewers)
-                 .annotate(total=Sum('score'))
-                 .order_by('-total'))
+        reviewers = (
+            UserProfile.objects.filter(groups__name__startswith='Reviewers: ')
+            .exclude(
+                groups__name__in=('Staff', 'Admins', 'No Reviewer Incentives')
+            )
+            .distinct()
+        )
+        qs = (
+            cls.objects.values_list('user__id')
+            .filter(user__in=reviewers)
+            .annotate(total=Sum('score'))
+            .order_by('-total')
+        )
 
         if since is not None:
             qs = qs.filter(created__gte=since)
@@ -734,7 +868,8 @@ class ReviewerScore(ModelBase):
         users = {reviewer.pk: reviewer for reviewer in reviewers}
         return [
             (item[0], users.get(item[0], UserProfile()).name, item[1])
-            for item in qs]
+            for item in qs
+        ]
 
     @classmethod
     def get_leaderboards(cls, user, days=7, types=None, addon_type=None):
@@ -762,7 +897,8 @@ class ReviewerScore(ModelBase):
         leader_near = []
 
         leaderboard = cls._leaderboard_list(
-            since=week_ago, types=types, addon_type=addon_type)
+            since=week_ago, types=types, addon_type=addon_type
+        )
 
         scores = []
 
@@ -770,12 +906,14 @@ class ReviewerScore(ModelBase):
         in_leaderboard = False
         for rank, row in enumerate(leaderboard, 1):
             user_id, name, total = row
-            scores.append({
-                'user_id': user_id,
-                'name': name,
-                'rank': rank,
-                'total': int(total),
-            })
+            scores.append(
+                {
+                    'user_id': user_id,
+                    'name': name,
+                    'rank': rank,
+                    'total': int(total),
+                }
+            )
             if user_id == user.id:
                 user_rank = rank
                 in_leaderboard = True
@@ -823,12 +961,14 @@ class ReviewerScore(ModelBase):
             else:
                 level = str(amo.REVIEWED_LEVELS[user_level]['name'])
 
-            scores.append({
-                'user_id': user_id,
-                'name': name,
-                'total': int(total),
-                'level': level,
-            })
+            scores.append(
+                {
+                    'user_id': user_id,
+                    'name': name,
+                    'total': int(total),
+                    'level': level,
+                }
+            )
 
         prev = None
         for score in reversed(scores):
@@ -850,15 +990,18 @@ class AutoApprovalNoValidationResultError(Exception):
 
 class AutoApprovalSummary(ModelBase):
     """Model holding the results of an auto-approval attempt on a Version."""
+
     version = models.OneToOneField(
-        Version, on_delete=models.CASCADE, primary_key=True)
+        Version, on_delete=models.CASCADE, primary_key=True
+    )
     is_locked = models.BooleanField(default=False)
     has_auto_approval_disabled = models.BooleanField(default=False)
     is_recommendable = models.BooleanField(default=False)
     should_be_delayed = models.BooleanField(default=False)
     verdict = models.PositiveSmallIntegerField(
         choices=amo.AUTO_APPROVAL_VERDICT_CHOICES,
-        default=amo.NOT_AUTO_APPROVED)
+        default=amo.NOT_AUTO_APPROVED,
+    )
     weight = models.IntegerField(default=0)
     weight_info = JSONField(default={}, null=True)
     confirmed = models.NullBooleanField(default=None)
@@ -887,37 +1030,55 @@ class AutoApprovalSummary(ModelBase):
             # in the last 6 weeks adds 15 to the weight, up to a maximum of
             # 100.
             'abuse_reports': min(
-                AbuseReport.objects
-                .filter(Q(addon=addon) | Q(user__in=addon.listed_authors))
-                .filter(created__gte=six_weeks_ago).count() * 15, 100),
+                AbuseReport.objects.filter(
+                    Q(addon=addon) | Q(user__in=addon.listed_authors)
+                )
+                .filter(created__gte=six_weeks_ago)
+                .count()
+                * 15,
+                100,
+            ),
             # 1% of the total of "recent" ratings with a score of 3 or less
             # adds 2 to the weight, up to a maximum of 100.
-            'negative_ratings': min(int(
-                Rating.objects
-                .filter(addon=addon)
-                .filter(rating__lte=3, created__gte=one_year_ago)
-                .count() / 100.0 * 2.0), 100),
+            'negative_ratings': min(
+                int(
+                    Rating.objects.filter(addon=addon)
+                    .filter(rating__lte=3, created__gte=one_year_ago)
+                    .count()
+                    / 100.0
+                    * 2.0
+                ),
+                100,
+            ),
             # Reputation is set by admin - the value is inverted to add from
             # -300 (decreasing priority for "trusted" add-ons) to 0.
             'reputation': (
-                max(min(int(addon.reputation or 0) * -100, 0), -300)),
+                max(min(int(addon.reputation or 0) * -100, 0), -300)
+            ),
             # Average daily users: value divided by 10000 is added to the
             # weight, up to a maximum of 100.
             'average_daily_users': min(
-                addon.average_daily_users // 10000, 100),
+                addon.average_daily_users // 10000, 100
+            ),
             # Pas rejection history: each "recent" rejected version (disabled
             # with an original status of null, so not disabled by a developer)
             # adds 10 to the weight, up to a maximum of 100.
             'past_rejection_history': min(
-                Version.objects
-                .filter(addon=addon,
-                        files__reviewed__gte=one_year_ago,
-                        files__original_status=amo.STATUS_NULL,
-                        files__status=amo.STATUS_DISABLED)
-                .distinct().count() * 10, 100),
+                Version.objects.filter(
+                    addon=addon,
+                    files__reviewed__gte=one_year_ago,
+                    files__original_status=amo.STATUS_NULL,
+                    files__status=amo.STATUS_DISABLED,
+                )
+                .distinct()
+                .count()
+                * 10,
+                100,
+            ),
         }
         self.weight_info.update(
-            self.calculate_static_analysis_weight_factors())
+            self.calculate_static_analysis_weight_factors()
+        )
         self.weight = sum(self.weight_info.values())
         return self.weight_info
 
@@ -928,49 +1089,60 @@ class AutoApprovalSummary(ModelBase):
         Used by calculate_weight()."""
         try:
             innerhtml_count = self.count_uses_innerhtml(self.version)
-            unknown_minified_code_count = (
-                self.count_uses_unknown_minified_code(self.version))
+            unknown_minified_code_count = self.count_uses_unknown_minified_code(
+                self.version
+            )
 
             factors = {
                 # Static analysis flags from linter:
                 # eval() or document.write(): 50.
                 'uses_eval_or_document_write': (
-                    50 if self.count_uses_eval_or_document_write(self.version)
-                    else 0),
+                    50
+                    if self.count_uses_eval_or_document_write(self.version)
+                    else 0
+                ),
                 # Implied eval in setTimeout/setInterval/ on* attributes: 5.
                 'uses_implied_eval': (
-                    5 if self.count_uses_implied_eval(self.version)
-                    else 0),
+                    5 if self.count_uses_implied_eval(self.version) else 0
+                ),
                 # innerHTML / unsafe DOM: 50+10 per instance.
                 'uses_innerhtml': (
-                    50 + 10 * (innerhtml_count - 1) if innerhtml_count else 0),
+                    50 + 10 * (innerhtml_count - 1) if innerhtml_count else 0
+                ),
                 # custom CSP: 90.
                 'uses_custom_csp': (
-                    90 if self.count_uses_custom_csp(self.version)
-                    else 0),
+                    90 if self.count_uses_custom_csp(self.version) else 0
+                ),
                 # nativeMessaging permission: 100.
                 'uses_native_messaging': (
-                    100 if self.check_uses_native_messaging(self.version)
-                    else 0),
+                    100
+                    if self.check_uses_native_messaging(self.version)
+                    else 0
+                ),
                 # remote scripts: 100.
                 'uses_remote_scripts': (
-                    100 if self.count_uses_remote_scripts(self.version)
-                    else 0),
+                    100 if self.count_uses_remote_scripts(self.version) else 0
+                ),
                 # violates mozilla conditions of use: 20.
                 'violates_mozilla_conditions': (
-                    20 if self.count_violates_mozilla_conditions(self.version)
-                    else 0),
+                    20
+                    if self.count_violates_mozilla_conditions(self.version)
+                    else 0
+                ),
                 # libraries of unreadable code: 100+10 per instance.
                 'uses_unknown_minified_code': (
                     100 + 10 * (unknown_minified_code_count - 1)
-                    if unknown_minified_code_count else 0),
+                    if unknown_minified_code_count
+                    else 0
+                ),
                 # Size of code changes: 5kB is one point, up to a max of 100.
                 'size_of_code_changes': min(
-                    self.calculate_size_of_code_changes() // 5000, 100),
+                    self.calculate_size_of_code_changes() // 5000, 100
+                ),
                 # Seems to be using a coinminer: 2000
                 'uses_coinminer': (
-                    2000 if self.count_uses_uses_coinminer(self.version)
-                    else 0),
+                    2000 if self.count_uses_uses_coinminer(self.version) else 0
+                ),
             }
         except AutoApprovalNoValidationResultError:
             # We should have a FileValidationResult... since we don't and
@@ -983,8 +1155,9 @@ class AutoApprovalSummary(ModelBase):
     def get_pretty_weight_info(self):
         """Returns a list of strings containing weight information."""
         if self.weight_info:
-            weight_info = sorted(['%s: %d' % (k, v)
-                                 for k, v in self.weight_info.items() if v])
+            weight_info = sorted(
+                ['%s: %d' % (k, v) for k, v in self.weight_info.items() if v]
+            )
         else:
             weight_info = [ugettext('Risk breakdown not available.')]
         return weight_info
@@ -995,8 +1168,11 @@ class AutoApprovalSummary(ModelBase):
         isn't one."""
         addon = self.version.addon
         try:
-            version = addon.versions.exclude(pk=self.version.pk).filter(
-                autoapprovalsummary__confirmed=True).latest()
+            version = (
+                addon.versions.exclude(pk=self.version.pk)
+                .filter(autoapprovalsummary__confirmed=True)
+                .latest()
+            )
         except Version.DoesNotExist:
             version = None
         return version
@@ -1004,6 +1180,7 @@ class AutoApprovalSummary(ModelBase):
     def calculate_size_of_code_changes(self):
         """Return the size of code changes between the version being
         approved and the previous public one."""
+
         def find_code_size(version):
             # There could be multiple files: if that's the case, take the
             # total for all files and divide it by the number of files.
@@ -1011,8 +1188,9 @@ class AutoApprovalSummary(ModelBase):
             total_code_size = 0
             for file_ in version.all_files:
                 data = json.loads(file_.validation.validation)
-                total_code_size += (
-                    data.get('metadata', {}).get('totalScannedFileSize', 0))
+                total_code_size += data.get('metadata', {}).get(
+                    'totalScannedFileSize', 0
+                )
             return total_code_size // number_of_files
 
         try:
@@ -1073,13 +1251,18 @@ class AutoApprovalSummary(ModelBase):
         mapping = {
             'is_locked': ugettext('Is locked by a reviewer'),
             'has_auto_approval_disabled': ugettext(
-                'Has auto-approval disabled flag set'),
+                'Has auto-approval disabled flag set'
+            ),
             'is_recommendable': ugettext('Is recommendable'),
             'should_be_delayed': ugettext(
-                "Delayed because it's the first listed version")
+                "Delayed because it's the first listed version"
+            ),
         }
-        return (mapping[key] for key, value in sorted(verdict_info.items())
-                if value)
+        return (
+            mapping[key]
+            for key, value in sorted(verdict_info.items())
+            if value
+        )
 
     @classmethod
     def _count_linter_flag(cls, version, flag):
@@ -1089,10 +1272,14 @@ class AutoApprovalSummary(ModelBase):
             except FileValidation.DoesNotExist:
                 raise AutoApprovalNoValidationResultError()
             validation_data = json.loads(validation.validation)
-            return sum(flag in message['id']
-                       for message in validation_data.get('messages', []))
-        return max(_count_linter_flag_in_file(file_)
-                   for file_ in version.all_files)
+            return sum(
+                flag in message['id']
+                for message in validation_data.get('messages', [])
+            )
+
+        return max(
+            _count_linter_flag_in_file(file_) for file_ in version.all_files
+        )
 
     @classmethod
     def _count_metadata_property(cls, version, prop):
@@ -1102,10 +1289,12 @@ class AutoApprovalSummary(ModelBase):
             except FileValidation.DoesNotExist:
                 raise AutoApprovalNoValidationResultError()
             validation_data = json.loads(validation.validation)
-            return len(validation_data.get(
-                'metadata', {}).get(prop, []))
-        return max(_count_property_in_linter_metadata_in_file(file_)
-                   for file_ in version.all_files)
+            return len(validation_data.get('metadata', {}).get(prop, []))
+
+        return max(
+            _count_property_in_linter_metadata_in_file(file_)
+            for file_ in version.all_files
+        )
 
     @classmethod
     def count_uses_unknown_minified_code(cls, version):
@@ -1121,9 +1310,9 @@ class AutoApprovalSummary(ModelBase):
 
     @classmethod
     def count_uses_eval_or_document_write(cls, version):
-        return (
-            cls._count_linter_flag(version, 'NO_DOCUMENT_WRITE') or
-            cls._count_linter_flag(version, 'DANGEROUS_EVAL'))
+        return cls._count_linter_flag(
+            version, 'NO_DOCUMENT_WRITE'
+        ) or cls._count_linter_flag(version, 'DANGEROUS_EVAL')
 
     @classmethod
     def count_uses_implied_eval(cls, version):
@@ -1143,8 +1332,10 @@ class AutoApprovalSummary(ModelBase):
 
     @classmethod
     def check_uses_native_messaging(cls, version):
-        return any('nativeMessaging' in file_.webext_permissions_list
-                   for file_ in version.all_files)
+        return any(
+            'nativeMessaging' in file_.webext_permissions_list
+            for file_ in version.all_files
+        )
 
     @classmethod
     def check_is_locked(cls, version):
@@ -1154,9 +1345,10 @@ class AutoApprovalSummary(ModelBase):
         is_langpack = version.addon.type == amo.ADDON_LPAPP
         locked_by = get_reviewing_cache(version.addon.pk)
         return (
-            not is_langpack and
-            bool(locked_by) and
-            locked_by != settings.TASK_USER_ID)
+            not is_langpack
+            and bool(locked_by)
+            and locked_by != settings.TASK_USER_ID
+        )
 
     @classmethod
     def check_has_auto_approval_disabled(cls, version):
@@ -1187,10 +1379,11 @@ class AutoApprovalSummary(ModelBase):
         except AddonApprovalsCounter.DoesNotExist:
             content_review = None
         return (
-            not is_langpack and
-            version.addon.status == amo.STATUS_NOMINATED and
-            now - nomination < timedelta(hours=24) and
-            content_review is None)
+            not is_langpack
+            and version.addon.status == amo.STATUS_NOMINATED
+            and now - nomination < timedelta(hours=24)
+            and content_review is None
+        )
 
     @classmethod
     def create_summary_for_version(cls, version, dry_run=False):
@@ -1215,7 +1408,8 @@ class AutoApprovalSummary(ModelBase):
             'version': version,
             'is_locked': cls.check_is_locked(version),
             'has_auto_approval_disabled': cls.check_has_auto_approval_disabled(
-                version),
+                version
+            ),
             'is_recommendable': cls.check_is_recommendable(version),
             'should_be_delayed': cls.check_should_be_delayed(version),
         }
@@ -1229,13 +1423,15 @@ class AutoApprovalSummary(ModelBase):
         data['weight'] = instance.weight
         data['weight_info'] = instance.weight_info
         instance, _ = cls.objects.update_or_create(
-            version=version, defaults=data)
+            version=version, defaults=data
+        )
         return instance, verdict_info
 
 
 class Whiteboard(ModelBase):
     addon = models.OneToOneField(
-        Addon, on_delete=models.CASCADE, primary_key=True)
+        Addon, on_delete=models.CASCADE, primary_key=True
+    )
     private = models.TextField(blank=True)
     public = models.TextField(blank=True)
 
@@ -1244,4 +1440,7 @@ class Whiteboard(ModelBase):
 
     def __str__(self):
         return u'[%s] private: |%s| public: |%s|' % (
-            self.addon.name, self.private, self.public)
+            self.addon.name,
+            self.private,
+            self.public,
+        )

@@ -24,6 +24,7 @@ def get_locale_analyzer(lang):
 
 class AddonQueryParam(object):
     """Helper to build a simple ES query from a request.GET param."""
+
     operator = 'term'  # ES filter to use when filtering.
     query_param = None
     reverse_dict = None
@@ -100,18 +101,30 @@ class AddonAppVersionQueryParam(AddonQueryParam):
                     ugettext('Invalid "%s" parameter.' % self.query_param)
                 )
             return app, low, high
-        raise ValueError(ugettext(
-            'Invalid combination of "%s" and "%s" parameters.' % (
-                AddonAppQueryParam.query_param,
-                self.query_param)))
+        raise ValueError(
+            ugettext(
+                'Invalid combination of "%s" and "%s" parameters.'
+                % (AddonAppQueryParam.query_param, self.query_param)
+            )
+        )
 
     def get_es_query(self):
         app_id, low, high = self.get_values()
         return [
-            Q('range', **{'current_version.compatible_apps.%d.min' % app_id:
-              {'lte': low}}),
-            Q('range', **{'current_version.compatible_apps.%d.max' % app_id:
-              {'gte': high}}),
+            Q(
+                'range',
+                **{
+                    'current_version.compatible_apps.%d.min'
+                    % app_id: {'lte': low}
+                },
+            ),
+            Q(
+                'range',
+                **{
+                    'current_version.compatible_apps.%d.max'
+                    % app_id: {'gte': high}
+                },
+            ),
         ]
 
 
@@ -133,8 +146,9 @@ class AddonAuthorQueryParam(AddonQueryParam):
         usernames = [value for value in values if not value.isdigit()]
         if ids or usernames:
             filters.append(
-                Q('terms', **{self.es_field_prefix + 'id': ids}) |
-                Q('terms', **{self.es_field_prefix + 'username': usernames}))
+                Q('terms', **{self.es_field_prefix + 'id': ids})
+                | Q('terms', **{self.es_field_prefix + 'username': usernames})
+            )
         return filters
 
 
@@ -167,7 +181,8 @@ class AddonGuidQueryParam(AddonQueryParam):
                 # We need to keep force_text on the input because
                 # urlsafe_base64_decode requires str from Django 2.2 onwards.
                 value = force_text(
-                    urlsafe_base64_decode(force_text(value[4:])))
+                    urlsafe_base64_decode(force_text(value[4:]))
+                )
                 if not amo.ADDON_GUID_PATTERN.match(value):
                     raise ValueError()
             except (TypeError, ValueError):
@@ -252,11 +267,16 @@ class AddonCategoryQueryParam(AddonQueryParam):
             types = AddonTypeQueryParam(self.request).get_value()
             self.reverse_dict = [CATEGORIES[app][type_] for type_ in types]
         except KeyError:
-            raise ValueError(ugettext(
-                'Invalid combination of "%s", "%s" and "%s" parameters.' % (
-                    AddonAppQueryParam.query_param,
-                    AddonTypeQueryParam.query_param,
-                    self.query_param)))
+            raise ValueError(
+                ugettext(
+                    'Invalid combination of "%s", "%s" and "%s" parameters.'
+                    % (
+                        AddonAppQueryParam.query_param,
+                        AddonTypeQueryParam.query_param,
+                        self.query_param,
+                    )
+                )
+            )
 
     def get_value(self):
         value = super(AddonCategoryQueryParam, self).get_value()
@@ -303,8 +323,11 @@ class AddonTagQueryParam(AddonQueryParam):
     def get_es_query(self):
         # Just using 'terms' would not work, as it would return any tag match
         # in the list, but we want to exactly match all of them.
-        return [Q('term', tags=tag) for tag in self.get_value()
-                if tag not in self.ignored]
+        return [
+            Q('term', tags=tag)
+            for tag in self.get_value()
+            if tag not in self.ignored
+        ]
 
 
 class AddonExcludeAddonsQueryParam(AddonQueryParam):
@@ -333,8 +356,11 @@ class AddonFeaturedQueryParam(AddonQueryParam):
     def get_es_query(self):
         self.get_value()  # Call to validate the value - we only want True.
         app_filter = AddonAppQueryParam(self.request)
-        app = (app_filter.get_value()
-               if self.request.GET.get(app_filter.query_param) else None)
+        app = (
+            app_filter.get_value()
+            if self.request.GET.get(app_filter.query_param)
+            else None
+        )
         locale = self.request.GET.get('lang')
         if not app and not locale:
             # If neither app nor locale is specified fall back on is_featured.
@@ -345,15 +371,16 @@ class AddonFeaturedQueryParam(AddonQueryParam):
         clauses = []
         if app:
             # Search for featured collections targeting `app`.
-            clauses.append(
-                Q('term', **{'featured_for.application': app}))
+            clauses.append(Q('term', **{'featured_for.application': app}))
         if locale:
             # Search for featured collections targeting `locale` or all locales
             # ('ALL' is the null_value for featured_for.locales).
             clauses.append(
-                Q('terms', **{'featured_for.locales': [locale, 'ALL']}))
-        return [Q('nested', path='featured_for', query=query.Bool(
-            filter=clauses))]
+                Q('terms', **{'featured_for.locales': [locale, 'ALL']})
+            )
+        return [
+            Q('nested', path='featured_for', query=query.Bool(filter=clauses))
+        ]
 
 
 class AddonRecommendedQueryParam(AddonQueryParam):
@@ -385,9 +412,9 @@ class AddonColorQueryParam(AddonQueryParam):
     def get_es_query(self):
         # Thresholds for saturation & luminosity that dictate which query to
         # use to determine matching colors.
-        LOW_SATURATION = 255 * 2.5 / 100.
-        LOW_LUMINOSITY = 255 * 5 / 100.
-        HIGH_LUMINOSITY = 255 * 98 / 100.
+        LOW_SATURATION = 255 * 2.5 / 100.0
+        LOW_LUMINOSITY = 255 * 5 / 100.0
+        HIGH_LUMINOSITY = 255 * 98 / 100.0
 
         hsl = self.get_value()
         if hsl[1] <= LOW_SATURATION:
@@ -395,26 +422,25 @@ class AddonColorQueryParam(AddonQueryParam):
             # searching for a black/white/grey and we need to take saturation
             # and lightness into consideration, but ignore hue.
             clauses = [
-                Q('range', **{'colors.s': {
-                    'lte': LOW_SATURATION,
-                }}),
-                Q('range', **{'colors.l': {
-                    'gte': max(min(hsl[2] - 64, 255), 0),
-                    'lte': max(min(hsl[2] + 64, 255), 0),
-                }})
+                Q('range', **{'colors.s': {'lte': LOW_SATURATION,}}),
+                Q(
+                    'range',
+                    **{
+                        'colors.l': {
+                            'gte': max(min(hsl[2] - 64, 255), 0),
+                            'lte': max(min(hsl[2] + 64, 255), 0),
+                        }
+                    },
+                ),
             ]
         elif hsl[2] <= LOW_LUMINOSITY:
             # If we're given a color with a very low luminosity, we're
             # essentially looking for pure black. We can ignore hue and
             # saturation, they don't have enough impact to matter here.
-            clauses = [
-                Q('range', **{'colors.l': {'lte': LOW_LUMINOSITY}})
-            ]
+            clauses = [Q('range', **{'colors.l': {'lte': LOW_LUMINOSITY}})]
         elif hsl[2] >= HIGH_LUMINOSITY:
             # Same deal for very high luminosity, this is essentially white.
-            clauses = [
-                Q('range', **{'colors.l': {'gte': HIGH_LUMINOSITY}})
-            ]
+            clauses = [Q('range', **{'colors.l': {'gte': HIGH_LUMINOSITY}})]
         else:
             # Otherwise, we want to do the opposite and just try to match the
             # hue with +/- 10%. The idea is to keep the UI simple, presenting
@@ -424,10 +450,15 @@ class AddonColorQueryParam(AddonQueryParam):
             # are handled above.
             clauses = [
                 Q('range', **{'colors.s': {'gt': LOW_SATURATION}}),
-                Q('range', **{'colors.l': {
-                    'gt': LOW_LUMINOSITY,
-                    'lt': HIGH_LUMINOSITY
-                }}),
+                Q(
+                    'range',
+                    **{
+                        'colors.l': {
+                            'gt': LOW_LUMINOSITY,
+                            'lt': HIGH_LUMINOSITY,
+                        }
+                    },
+                ),
             ]
             if hsl[0] - 26 < 0 or hsl[0] + 26 > 255:
                 # If the hue minus 10% is below 0 or above 255, we need to wrap
@@ -437,17 +468,22 @@ class AddonColorQueryParam(AddonQueryParam):
                 # end up with a range that's impossible to match. Instead we
                 # need to split into 2 queries and match either with a |.
                 clauses.append(
-                    Q('range', **{'colors.h': {'gte': (hsl[0] - 26) % 255}}) |
-                    Q('range', **{'colors.h': {'lte': (hsl[0] + 26) % 255}})
+                    Q('range', **{'colors.h': {'gte': (hsl[0] - 26) % 255}})
+                    | Q('range', **{'colors.h': {'lte': (hsl[0] + 26) % 255}})
                 )
             else:
                 # If we don't have to wrap around then it's simpler, just need
                 # a single range query between 2 values.
                 clauses.append(
-                    Q('range', **{'colors.h': {
-                        'gte': hsl[0] - 26,
-                        'lte': hsl[0] + 26,
-                    }}),
+                    Q(
+                        'range',
+                        **{
+                            'colors.h': {
+                                'gte': hsl[0] - 26,
+                                'lte': hsl[0] + 26,
+                            }
+                        },
+                    ),
                 )
 
         # In any case, the color we're looking for needs to be present in at
@@ -462,6 +498,7 @@ class SearchQueryFilter(BaseFilterBackend):
     A django-rest-framework filter backend that performs an ES query according
     to what's in the `q` GET parameter.
     """
+
     MAX_QUERY_LENGTH = 100
     MAX_QUERY_LENGTH_FOR_FUZZY_SEARCH = 20
 
@@ -484,15 +521,19 @@ class SearchQueryFilter(BaseFilterBackend):
           would do, except that it works with Term queries.
         """
         if analyzer is None:
-            clause = query.Term(**{
-                'name.raw': {
-                    '_name': 'Term(name.raw)',
-                    'value': search_query, 'boost': 100.0
+            clause = query.Term(
+                **{
+                    'name.raw': {
+                        '_name': 'Term(name.raw)',
+                        'value': search_query,
+                        'boost': 100.0,
+                    }
                 }
-            })
+            )
         else:
             query_name = 'DisMax(Term(name.raw), Term(name_l10n_%s.raw))' % (
-                analyzer)
+                analyzer
+            )
             clause = query.DisMax(
                 # We only care if one of these matches, so we leave tie_breaker
                 # to the default value of 0.0.
@@ -501,7 +542,7 @@ class SearchQueryFilter(BaseFilterBackend):
                 queries=[
                     {'term': {'name.raw': search_query}},
                     {'term': {'name_l10n_%s.raw' % analyzer: search_query}},
-                ]
+                ],
             )
         return clause
 
@@ -521,51 +562,65 @@ class SearchQueryFilter(BaseFilterBackend):
         * Then text matches, using the standard text analyzer (boost=6.0)
         * Then look for the query as a prefix of a name (boost=3.0)
         """
-        should = [
-            self.generate_exact_name_match_query(search_query, analyzer)
-        ]
+        should = [self.generate_exact_name_match_query(search_query, analyzer)]
 
         # If we are searching with a language that we support, we also try to
         # do a match against the translated field. If not, we'll do a match
         # against the name in default locale below.
         if analyzer:
             should.append(
-                query.Match(**{
-                    'name_l10n_%s' % analyzer: {
-                        '_name': 'Match(name_l10n_%s)' % analyzer,
-                        'query': search_query,
-                        'boost': 5.0,
-                        'analyzer': analyzer,
-                        'operator': 'and'
+                query.Match(
+                    **{
+                        'name_l10n_%s'
+                        % analyzer: {
+                            '_name': 'Match(name_l10n_%s)' % analyzer,
+                            'query': search_query,
+                            'boost': 5.0,
+                            'analyzer': analyzer,
+                            'operator': 'and',
+                        }
                     }
-                })
+                )
             )
 
         # The rest of the rules are applied to 'name', the field containing the
         # default locale translation only. That field has word delimiter rules
         # to help find matches, lowercase filter, etc, at the expense of any
         # language-specific features.
-        should.extend([
-            query.MatchPhrase(**{
-                'name': {
-                    '_name': 'MatchPhrase(name)',
-                    'query': search_query, 'boost': 8.0, 'slop': 1,
-                },
-            }),
-            query.Match(**{
-                'name': {
-                    '_name': 'Match(name)',
-                    'analyzer': 'standard',
-                    'query': search_query, 'boost': 6.0, 'operator': 'and',
-                },
-            }),
-            query.Prefix(**{
-                'name': {
-                    '_name': 'Prefix(name)',
-                    'value': search_query, 'boost': 3.0
-                },
-            }),
-        ])
+        should.extend(
+            [
+                query.MatchPhrase(
+                    **{
+                        'name': {
+                            '_name': 'MatchPhrase(name)',
+                            'query': search_query,
+                            'boost': 8.0,
+                            'slop': 1,
+                        },
+                    }
+                ),
+                query.Match(
+                    **{
+                        'name': {
+                            '_name': 'Match(name)',
+                            'analyzer': 'standard',
+                            'query': search_query,
+                            'boost': 6.0,
+                            'operator': 'and',
+                        },
+                    }
+                ),
+                query.Prefix(
+                    **{
+                        'name': {
+                            '_name': 'Prefix(name)',
+                            'value': search_query,
+                            'boost': 3.0,
+                        },
+                    }
+                ),
+            ]
+        )
 
         # Add two queries inside a single DisMax rule (avoiding overboosting
         # when an add-on name matches both queries) to support partial & fuzzy
@@ -576,45 +631,48 @@ class SearchQueryFilter(BaseFilterBackend):
         # Again applied to 'name' in the default locale, without the
         # language-specific analysis.
         if len(search_query) < self.MAX_QUERY_LENGTH_FOR_FUZZY_SEARCH:
-            should.append(query.DisMax(
-                # We only care if one of these matches, so we leave tie_breaker
-                # to the default value of 0.0.
-                _name='DisMax(FuzzyMatch(name), Match(name.trigrams))',
-                boost=4.0,
-                queries=[
-                    # For the fuzzy query, only slight mispellings should be
-                    # corrected, but we allow some of the words to be absent
-                    # as well:
-                    # 1 or 2 terms: should all be present
-                    # 3 terms: 2 should be present
-                    # 4 terms or more: 25% can be absent
-                    {
-                        'match': {
-                            'name': {
-                                'query': search_query,
-                                'prefix_length': 2,
-                                'fuzziness': 'AUTO',
-                                'minimum_should_match': '2<2 3<-25%'
+            should.append(
+                query.DisMax(
+                    # We only care if one of these matches, so we leave tie_breaker
+                    # to the default value of 0.0.
+                    _name='DisMax(FuzzyMatch(name), Match(name.trigrams))',
+                    boost=4.0,
+                    queries=[
+                        # For the fuzzy query, only slight mispellings should be
+                        # corrected, but we allow some of the words to be absent
+                        # as well:
+                        # 1 or 2 terms: should all be present
+                        # 3 terms: 2 should be present
+                        # 4 terms or more: 25% can be absent
+                        {
+                            'match': {
+                                'name': {
+                                    'query': search_query,
+                                    'prefix_length': 2,
+                                    'fuzziness': 'AUTO',
+                                    'minimum_should_match': '2<2 3<-25%',
+                                }
                             }
-                        }
-                    },
-                    # For the trigrams query, we require at least 66% of the
-                    # trigrams to be present.
-                    {
-                        'match': {
-                            'name.trigrams': {
-                                'query': search_query,
-                                'minimum_should_match': '66%'
+                        },
+                        # For the trigrams query, we require at least 66% of the
+                        # trigrams to be present.
+                        {
+                            'match': {
+                                'name.trigrams': {
+                                    'query': search_query,
+                                    'minimum_should_match': '66%',
+                                }
                             }
-                        }
-                    },
-                ]
-            ))
+                        },
+                    ],
+                )
+            )
 
         return should
 
     def secondary_should_rules(
-            self, search_query, analyzer, rescore_mode=False):
+        self, search_query, analyzer, rescore_mode=False
+    ):
         """Return "secondary" should rules for the query.
 
         These are the ones using the weakest boosts, they are applied to fields
@@ -657,11 +715,13 @@ class SearchQueryFilter(BaseFilterBackend):
 
         if analyzer:
             summary_query_name = (
-                'MultiMatch(%s(summary),%s(summary_l10n_%s))' % (
-                    query_class_name, query_class_name, analyzer))
+                'MultiMatch(%s(summary),%s(summary_l10n_%s))'
+                % (query_class_name, query_class_name, analyzer)
+            )
             description_query_name = (
-                'MultiMatch(%s(description),%s(description_l10n_%s))' % (
-                    query_class_name, query_class_name, analyzer))
+                'MultiMatch(%s(description),%s(description_l10n_%s))'
+                % (query_class_name, query_class_name, analyzer)
+            )
             should = [
                 # When *not* doing a rescore, we do regular non-phrase matches
                 # with 'operator': 'and' (see query_class/multi_match_kwargs
@@ -674,14 +734,14 @@ class SearchQueryFilter(BaseFilterBackend):
                     query=search_query,
                     fields=['summary', 'summary_l10n_%s' % analyzer],
                     boost=3.0,
-                    **multi_match_kwargs
+                    **multi_match_kwargs,
                 ),
                 query.MultiMatch(
                     _name=description_query_name,
                     query=search_query,
                     fields=['description', 'description_l10n_%s' % analyzer],
                     boost=2.0,
-                    **multi_match_kwargs
+                    **multi_match_kwargs,
                 ),
             ]
         else:
@@ -691,13 +751,17 @@ class SearchQueryFilter(BaseFilterBackend):
                         _name='%s(summary)' % query_class_name,
                         query=search_query,
                         boost=3.0,
-                        **query_kwargs)),
+                        **query_kwargs,
+                    )
+                ),
                 query_class(
                     summary=dict(
                         _name='%s(description)' % query_class_name,
                         query=search_query,
                         boost=2.0,
-                        **query_kwargs)),
+                        **query_kwargs,
+                    )
+                ),
             ]
 
         return should
@@ -710,7 +774,8 @@ class SearchQueryFilter(BaseFilterBackend):
         possible.
         """
         return self.secondary_should_rules(
-            search_query, analyzer, rescore_mode=True)
+            search_query, analyzer, rescore_mode=True
+        )
 
     def apply_search_query(self, search_query, qs, sort=None):
         lang = translation.get_language()
@@ -727,39 +792,49 @@ class SearchQueryFilter(BaseFilterBackend):
             query.SF(
                 'field_value_factor',
                 field='average_daily_users',
-                modifier='log2p'),
-            query.SF({
-                'weight': 4.0,
-                'filter': (
-                    Q('term', is_experimental=False) &
-                    Q('terms', status=amo.REVIEWED_STATUSES) &
-                    Q('exists', field='current_version') &
-                    Q('term', is_disabled=False)
-                )
-            }),
+                modifier='log2p',
+            ),
+            query.SF(
+                {
+                    'weight': 4.0,
+                    'filter': (
+                        Q('term', is_experimental=False)
+                        & Q('terms', status=amo.REVIEWED_STATUSES)
+                        & Q('exists', field='current_version')
+                        & Q('term', is_disabled=False)
+                    ),
+                }
+            ),
         ]
         if switch_is_active('api-recommendations-priority'):
             functions.append(
-                query.SF({
-                    'weight': 5.0,
-                    'filter': (
-                        Q('term', is_recommended=True)
-                    )
-                }))
+                query.SF(
+                    {'weight': 5.0, 'filter': (Q('term', is_recommended=True))}
+                )
+            )
 
         # Assemble everything together
         qs = qs.query(
             'function_score',
             query=query.Bool(should=primary_should + secondary_should),
-            functions=functions)
+            functions=functions,
+        )
 
         if sort is None or sort == 'relevance':
             # If we are searching by relevancy, rescore the top 10
             # (window_size below) results per shard with more expensive rules
             # using match_phrase + slop.
             rescore_query = self.rescore_rules(search_query, analyzer)
-            qs = qs.extra(rescore={'window_size': 10, 'query': {
-                'rescore_query': query.Bool(should=rescore_query).to_dict()}})
+            qs = qs.extra(
+                rescore={
+                    'window_size': 10,
+                    'query': {
+                        'rescore_query': query.Bool(
+                            should=rescore_query
+                        ).to_dict()
+                    },
+                }
+            )
 
         return qs
 
@@ -784,6 +859,7 @@ class SearchParameterFilter(BaseFilterBackend):
     matching a specific set of params in request.GET: app, appversion,
     author, category, exclude_addons, platform, tag and type.
     """
+
     available_clauses = [
         AddonAppQueryParam,
         AddonAppVersionQueryParam,
@@ -824,12 +900,17 @@ class ReviewedContentFilter(BaseFilterBackend):
     an ES query -- those listed, not deleted, with a reviewed status and not
     disabled.
     """
+
     def filter_queryset(self, request, qs, view):
-        return qs.query(query.Bool(filter=[
-            Q('terms', status=amo.REVIEWED_STATUSES),
-            Q('exists', field='current_version'),
-            Q('term', is_disabled=False),
-        ]))
+        return qs.query(
+            query.Bool(
+                filter=[
+                    Q('terms', status=amo.REVIEWED_STATUSES),
+                    Q('exists', field='current_version'),
+                    Q('term', is_disabled=False),
+                ]
+            )
+        )
 
 
 class SortingFilter(BaseFilterBackend):
@@ -837,6 +918,7 @@ class SortingFilter(BaseFilterBackend):
     A django-rest-framework filter backend that applies sorting to an ES query
     according to the request.
     """
+
     SORTING_PARAMS = {
         'created': '-created',
         'downloads': '-weekly_downloads',
@@ -863,7 +945,8 @@ class SortingFilter(BaseFilterBackend):
             # First, it can't be combined with other sorts.
             if 'random' in split_sort_params and len(split_sort_params) > 1:
                 raise serializers.ValidationError(
-                    'The "random" "sort" parameter can not be combined.')
+                    'The "random" "sort" parameter can not be combined.'
+                )
 
             # Second, for perf reasons it's only available when the 'featured'
             # or 'recommended' param is present (to limit the number of
@@ -873,46 +956,56 @@ class SortingFilter(BaseFilterBackend):
             if split_sort_params == ['random']:
 
                 is_random_sort_available = (
-                    (AddonFeaturedQueryParam.query_param in request.GET or
-                     AddonRecommendedQueryParam.query_param in request.GET) and
-                    not search_query_param
-                )
+                    AddonFeaturedQueryParam.query_param in request.GET
+                    or AddonRecommendedQueryParam.query_param in request.GET
+                ) and not search_query_param
                 if is_random_sort_available:
                     qs = qs.query(
-                        'function_score', functions=[query.SF('random_score')])
+                        'function_score', functions=[query.SF('random_score')]
+                    )
                 else:
                     raise serializers.ValidationError(
                         'The "sort" parameter "random" can only be specified '
                         'when the "featured" or "recommended" parameter is '
-                        'also present, and the "q" parameter absent.')
+                        'also present, and the "q" parameter absent.'
+                    )
 
             # Sorting by relevance only makes sense with a query string
             if not search_query_param and 'relevance' in split_sort_params:
                 split_sort_params = [
-                    param for param in split_sort_params if not 'relevance']
+                    param for param in split_sort_params if not 'relevance'
+                ]
 
             # Having just recommended sort doesn't make any sense, so ignore it
             if split_sort_params == ['recommended']:
                 split_sort_params = None
             # relevance already takes into account recommended so ignore it too
-            elif ('recommended' in split_sort_params and
-                  'relevance' in split_sort_params):
+            elif (
+                'recommended' in split_sort_params
+                and 'relevance' in split_sort_params
+            ):
                 split_sort_params = [
-                    param for param in split_sort_params if not 'recommended']
+                    param for param in split_sort_params if not 'recommended'
+                ]
 
         if not split_sort_params:
             # The default sort depends on the presence of a query: we sort by
             # relevance if we have a query, otherwise by recommended,downloads.
             recommended_waffle_on = switch_is_active(
-                'api-recommendations-priority')
+                'api-recommendations-priority'
+            )
             split_sort_params = (
-                ['relevance'] if search_query_param else
-                ['recommended', 'users'] if recommended_waffle_on else
-                ['downloads'])
+                ['relevance']
+                if search_query_param
+                else ['recommended', 'users']
+                if recommended_waffle_on
+                else ['downloads']
+            )
 
         try:
-            order_by = [self.SORTING_PARAMS[name] for name in
-                        split_sort_params]
+            order_by = [
+                self.SORTING_PARAMS[name] for name in split_sort_params
+            ]
         except KeyError:
             raise serializers.ValidationError('Invalid "sort" parameter.')
 

@@ -72,8 +72,11 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Disconnect reindexing for every save, we'll reindex
         # once all addons were generated
-        post_save.disconnect(update_search_index, sender=Addon,
-                             dispatch_uid='addons.search.index')
+        post_save.disconnect(
+            update_search_index,
+            sender=Addon,
+            dispatch_uid='addons.search.index',
+        )
 
         with override_settings(CELERY_TASK_ALWAYS_EAGER=True):
             translation.activate('en-US')
@@ -85,10 +88,12 @@ class Command(BaseCommand):
             serializer.create_featured_themes()
             for addon in base_collections:
                 serializer.create_a_named_collection_and_addon(
-                    addon, author='mozilla')
+                    addon, author='mozilla'
+                )
             for addon in hero_addons:
                 serializer.create_a_named_collection_and_addon(
-                    addon, author='mozilla')
+                    addon, author='mozilla'
+                )
             for addon in hero_addons:
                 serializer.create_named_addon_with_author(addon)
             serializer.create_installable_addon()

@@ -20,13 +20,22 @@ from olympia.amo.models import use_primary_db
 from olympia.amo.tests import TestCase
 from olympia.translations.hold import translation_saved
 from olympia.translations.models import (
-    LinkifiedTranslation, NoLinksNoMarkupTranslation,
-    PurifiedTranslation, Translation, TranslationSequence)
+    LinkifiedTranslation,
+    NoLinksNoMarkupTranslation,
+    PurifiedTranslation,
+    Translation,
+    TranslationSequence,
+)
 from olympia.translations.query import order_by_translation
 from olympia.translations.tests.testapp.models import (
-    ContainsManyToManyToTranslatedModel, ContainsTranslatedThrough,
-    FancyModel, TranslatedModel, UntranslatedModel,
-    TranslatedModelWithDefaultNull, TranslatedModelLinkedAsForeignKey)
+    ContainsManyToManyToTranslatedModel,
+    ContainsTranslatedThrough,
+    FancyModel,
+    TranslatedModel,
+    UntranslatedModel,
+    TranslatedModelWithDefaultNull,
+    TranslatedModelLinkedAsForeignKey,
+)
 
 
 pytestmark = pytest.mark.django_db
@@ -56,8 +65,9 @@ class TranslationSequenceTestCase(TestCase):
         TranslationSequence.objects.all().delete()
         newtrans = Translation.new('abc', 'en-us')
         newtrans.save()
-        assert newtrans.id > 0, (
-            'Empty translation table should still generate an ID.')
+        assert (
+            newtrans.id > 0
+        ), 'Empty translation table should still generate an ID.'
 
     def test_single_translation_sequence(self):
         """Make sure we only ever have one translation sequence."""
@@ -74,8 +84,9 @@ class TranslationSequenceTestCase(TestCase):
         newtrans1.save()
         newtrans2 = Translation.new('def', 'de')
         newtrans2.save()
-        assert newtrans2.pk > newtrans1.pk, (
-            'Translation sequence needs to keep increasing.')
+        assert (
+            newtrans2.pk > newtrans1.pk
+        ), 'Translation sequence needs to keep increasing.'
 
 
 class TranslationTestCase(TestCase):
@@ -98,13 +109,23 @@ class TranslationTestCase(TestCase):
         assert not hasattr(UntranslatedModel._meta, 'translated_fields')
 
         assert set(TranslatedModel._meta.translated_fields) == (
-            set([TranslatedModel._meta.get_field('no_locale'),
-                 TranslatedModel._meta.get_field('name'),
-                 TranslatedModel._meta.get_field('description')]))
+            set(
+                [
+                    TranslatedModel._meta.get_field('no_locale'),
+                    TranslatedModel._meta.get_field('name'),
+                    TranslatedModel._meta.get_field('description'),
+                ]
+            )
+        )
 
         assert set(FancyModel._meta.translated_fields) == (
-            set([FancyModel._meta.get_field('purified'),
-                 FancyModel._meta.get_field('linkified')]))
+            set(
+                [
+                    FancyModel._meta.get_field('purified'),
+                    FancyModel._meta.get_field('linkified'),
+                ]
+            )
+        )
 
     def test_fetch_translations(self):
         """Basic check of fetching translations in the current locale."""
@@ -177,7 +198,8 @@ class TranslationTestCase(TestCase):
 
         fresh_english = get_model()
         self.trans_eq(
-            fresh_english.description, 'english description', 'en-US')
+            fresh_english.description, 'english description', 'en-US'
+        )
         assert fresh_english.description.id == fresh_german.description.id
 
     def test_update_translation(self):
@@ -278,7 +300,8 @@ class TranslationTestCase(TestCase):
 
         ts = Translation.objects.filter(id=m.name_id)
         assert sorted(ts.values_list('locale', flat=True)) == (
-            ['de', 'en-US', 'es'])
+            ['de', 'en-US', 'es']
+        )
 
     def test_sorting(self):
         """Test translation comparisons in Python code."""
@@ -292,7 +315,8 @@ class TranslationTestCase(TestCase):
         expected = [4, 1, 3]
         assert ids(order_by_translation(query, 'name')) == expected
         assert ids(order_by_translation(query, '-name')) == (
-            list(reversed(expected)))
+            list(reversed(expected))
+        )
 
     def test_order_by_translations_query_uses_left_outer_join(self):
         translation.activate('de')
@@ -310,45 +334,54 @@ class TranslationTestCase(TestCase):
 
         assert ids(order_by_translation(q, 'name')) == expected
         assert ids(order_by_translation(q, '-name')) == (
-            list(reversed(expected)))
+            list(reversed(expected))
+        )
 
     def test_sorting_by_field(self):
         field = TranslatedModel._meta.get_field('default_locale')
         fallback = classmethod(lambda cls: field)
-        with patch.object(TranslatedModel, 'get_fallback',
-                          fallback, create=True):
+        with patch.object(
+            TranslatedModel, 'get_fallback', fallback, create=True
+        ):
             translation.activate('de')
             qs = TranslatedModel.objects.all()
             expected = [3, 1, 4]
 
             assert ids(order_by_translation(qs, 'name')) == expected
             assert ids(order_by_translation(qs, '-name')) == (
-                list(reversed(expected)))
+                list(reversed(expected))
+            )
 
     def test_sorting_by_field_with_related_model(self):
         # This time we sort a "regular" queryset through a relation that
         # contains a translated field.
         container = ContainsManyToManyToTranslatedModel.objects.create()
         to_one = ContainsTranslatedThrough.objects.create(
-            container=container, target=TranslatedModel.objects.get(pk=1))
+            container=container, target=TranslatedModel.objects.get(pk=1)
+        )
         to_three = ContainsTranslatedThrough.objects.create(
-            container=container, target=TranslatedModel.objects.get(pk=3))
+            container=container, target=TranslatedModel.objects.get(pk=3)
+        )
         to_four = ContainsTranslatedThrough.objects.create(
-            container=container, target=TranslatedModel.objects.get(pk=4))
+            container=container, target=TranslatedModel.objects.get(pk=4)
+        )
 
         # We also add another TranslatedModel object that doesn't have a
         # translation in 'en-US' or 'de'.
         translation.activate('fr')
         five = TranslatedModel.objects.create(
-            default_locale='fr', name='a français')
+            default_locale='fr', name='a français'
+        )
         to_five = ContainsTranslatedThrough.objects.create(
-            container=container, target=five)
+            container=container, target=five
+        )
 
         def get_queryset():
             # FIXME: We force a join with TranslatedModel, because otherwise
             # order_by_translation isn't smart enough to do it itself.
             return ContainsTranslatedThrough.objects.filter(
-                target__name_id__gt=0)
+                target__name_id__gt=0
+            )
 
         # First, no fallback. The "five" instance is absent, because there is
         # no translation matching 'de' or settings.LANGUAGE_CODE (en-US).
@@ -356,24 +389,30 @@ class TranslationTestCase(TestCase):
         qs = get_queryset()
         expected = [to_one.pk, to_four.pk, to_three.pk]
 
-        assert ids(
-            order_by_translation(qs, 'name', TranslatedModel)) == expected
+        assert (
+            ids(order_by_translation(qs, 'name', TranslatedModel)) == expected
+        )
         assert ids(order_by_translation(qs, '-name', TranslatedModel)) == (
-            list(reversed(expected)))
+            list(reversed(expected))
+        )
 
         # Second, with fallback. This changes what translations are available,
         # causing "to_five" to be found, and "to_three" to be higher, because
         # we pick up its translation matching their default_locale.
         field = TranslatedModel._meta.get_field('default_locale')
         fallback = classmethod(lambda cls: field)
-        with patch.object(TranslatedModel, 'get_fallback',
-                          fallback, create=True):
+        with patch.object(
+            TranslatedModel, 'get_fallback', fallback, create=True
+        ):
             qs = get_queryset()
             expected = [to_five.pk, to_three.pk, to_one.pk, to_four.pk]
-            assert ids(
-                order_by_translation(qs, 'name', TranslatedModel)) == expected
+            assert (
+                ids(order_by_translation(qs, 'name', TranslatedModel))
+                == expected
+            )
             assert ids(order_by_translation(qs, '-name', TranslatedModel)) == (
-                list(reversed(expected)))
+                list(reversed(expected))
+            )
 
     def test_new_purified_field(self):
         # This is not a full test of the html sanitizing.  We expect the
@@ -384,7 +423,8 @@ class TranslationTestCase(TestCase):
         doc = pq(m.purified.localized_string_clean)
         assert doc('a[href="http://xxx.com"][rel="nofollow"]')[0].text == 'yay'
         assert doc('a[href="http://yyy.com"][rel="nofollow"]')[0].text == (
-            'http://yyy.com')
+            'http://yyy.com'
+        )
         assert m.purified.localized_string == s
 
     def test_new_linkified_field(self):
@@ -394,7 +434,8 @@ class TranslationTestCase(TestCase):
         doc = pq(m.linkified.localized_string_clean)
         assert doc('a[href="http://xxx.com"][rel="nofollow"]')[0].text == 'yay'
         assert doc('a[href="http://yyy.com"][rel="nofollow"]')[0].text == (
-            'http://yyy.com')
+            'http://yyy.com'
+        )
         assert not doc('i')
         assert '&lt;i&gt;' in m.linkified.localized_string_clean
         assert m.linkified.localized_string == s
@@ -408,7 +449,8 @@ class TranslationTestCase(TestCase):
         doc = pq(m.purified.localized_string_clean)
         assert doc('a[href="http://xxx.com"][rel="nofollow"]')[0].text == 'yay'
         assert doc('a[href="http://yyy.com"][rel="nofollow"]')[0].text == (
-            'http://yyy.com')
+            'http://yyy.com'
+        )
         assert m.purified.localized_string == s
 
     def test_update_linkified_field(self):
@@ -420,7 +462,8 @@ class TranslationTestCase(TestCase):
         doc = pq(m.linkified.localized_string_clean)
         assert doc('a[href="http://xxx.com"][rel="nofollow"]')[0].text == 'yay'
         assert doc('a[href="http://yyy.com"][rel="nofollow"]')[0].text == (
-            'http://yyy.com')
+            'http://yyy.com'
+        )
         assert '&lt;i&gt;' in m.linkified.localized_string_clean
         assert m.linkified.localized_string == s
 
@@ -430,7 +473,8 @@ class TranslationTestCase(TestCase):
 
         doc = pq(stringified)
         assert doc('a[href="http://yyy.com"][rel="nofollow"]')[0].text == (
-            'http://yyy.com')
+            'http://yyy.com'
+        )
         assert doc('i')[0].text == 'x'
 
     def test_linkified_field_str(self):
@@ -439,7 +483,8 @@ class TranslationTestCase(TestCase):
 
         doc = pq(stringified)
         assert doc('a[href="http://yyy.com"][rel="nofollow"]')[0].text == (
-            'http://yyy.com')
+            'http://yyy.com'
+        )
         assert not doc('i')
         assert '&lt;i&gt;' in stringified
 
@@ -448,8 +493,10 @@ class TranslationTestCase(TestCase):
         env = jinja2.Environment()
         t = env.from_string('{{ m.purified }}=={{ m.linkified }}')
         s = t.render({'m': m})
-        assert s == u'%s==%s' % (m.purified.localized_string_clean,
-                                 m.linkified.localized_string_clean)
+        assert s == u'%s==%s' % (
+            m.purified.localized_string_clean,
+            m.linkified.localized_string_clean,
+        )
 
     def test_outgoing_url(self):
         """
@@ -471,7 +518,8 @@ class TranslationTestCase(TestCase):
             link = doc('a')[0]
             assert link.attrib['href'] == (
                 "http://example.com/40979175e3ef6d7a9081085f3b99f2f05447b22ba7"
-                "90130517dd62b7ee59ef94/http%3A//example.org/awesomepage.html")
+                "90130517dd62b7ee59ef94/http%3A//example.org/awesomepage.html"
+            )
             assert link.attrib['rel'] == "nofollow"
             assert link.text == "http://example.org/awesomepage.html"
             assert m.linkified.localized_string == s
@@ -613,7 +661,6 @@ class TranslationMultiDbTests(TransactionTestCase):
 
 
 class PurifiedTranslationTest(TestCase):
-
     def test_output(self):
         assert isinstance(PurifiedTranslation().__html__(), str)
 
@@ -662,7 +709,6 @@ class PurifiedTranslationTest(TestCase):
 
 
 class LinkifiedTranslationTest(TestCase):
-
     @patch('olympia.amo.urlresolvers.get_outgoing_url')
     def test_allowed_tags(self, get_outgoing_url_mock):
         get_outgoing_url_mock.return_value = 'http://external.url'
@@ -677,17 +723,18 @@ class LinkifiedTranslationTest(TestCase):
         x = LinkifiedTranslation(localized_string=s)
         assert x.__html__() == (
             '&lt;script&gt;some naughty xss&lt;/script&gt; '
-            '&lt;b&gt;bold&lt;/b&gt;')
+            '&lt;b&gt;bold&lt;/b&gt;'
+        )
 
 
 class NoLinksNoMarkupTranslationTest(TestCase):
-
     def test_forbidden_tags(self):
         s = u'<script>some naughty xss</script> <b>bold</b>'
         x = NoLinksNoMarkupTranslation(localized_string=s)
         assert x.__html__() == (
             '&lt;script&gt;some naughty xss&lt;/script&gt; '
-            '&lt;b&gt;bold&lt;/b&gt;')
+            '&lt;b&gt;bold&lt;/b&gt;'
+        )
 
     def test_links_stripped(self):
         # Link with markup.
@@ -701,14 +748,17 @@ class NoLinksNoMarkupTranslationTest(TestCase):
         assert x.__html__() == u'a text  link'
 
         # Text link, markup link, forbidden tags and bad markup.
-        s = (u'a <a href="http://example.com">link</a> with markup, a text '
-             u'http://example.com link, <b>with forbidden tags</b>, '
-             u'<script>forbidden tags</script> and <http://bad.markup.com')
+        s = (
+            u'a <a href="http://example.com">link</a> with markup, a text '
+            u'http://example.com link, <b>with forbidden tags</b>, '
+            u'<script>forbidden tags</script> and <http://bad.markup.com'
+        )
         x = NoLinksNoMarkupTranslation(localized_string=s)
         assert x.__html__() == (
             u'a  with markup, a text  link, '
             u'&lt;b&gt;with forbidden tags&lt;/b&gt;, '
-            u'&lt;script&gt;forbidden tags&lt;/script&gt; and')
+            u'&lt;script&gt;forbidden tags&lt;/script&gt; and'
+        )
 
 
 def test_translation_bool():

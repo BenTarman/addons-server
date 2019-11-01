@@ -15,12 +15,14 @@ class TestRatingAdmin(TestCase):
     def setUp(self):
         self.addon = Addon.objects.get(pk=3615)
         self.rating = Rating.objects.create(
-            addon=self.addon, body=u'Bär', rating=5, user=user_factory())
+            addon=self.addon, body=u'Bär', rating=5, user=user_factory()
+        )
         self.detail_url = reverse(
-            'admin:ratings_rating_change', args=(self.rating.pk, ))
+            'admin:ratings_rating_change', args=(self.rating.pk,)
+        )
         self.list_url = reverse('admin:ratings_rating_changelist')
         self.delete_url = reverse(
-            'admin:ratings_rating_delete', args=(self.rating.pk, )
+            'admin:ratings_rating_delete', args=(self.rating.pk,)
         )
 
     def test_list(self):
@@ -29,18 +31,23 @@ class TestRatingAdmin(TestCase):
 
         # Create a few more ratings.
         Rating.objects.create(
-            addon=addon, user=user_factory(), rating=4,
+            addon=addon,
+            user=user_factory(),
+            rating=4,
             body=u'Lôrem ipsum dolor sit amet, per at melius fuisset '
-                 u'invidunt, ea facete aperiam his. Et cum iusto detracto, '
-                 u'nam atqui nostrum no, eum altera indoctum ad. Has ut duis '
-                 u'tractatos laboramus, cum sale primis ei. Ius inimicus '
-                 u'intellegebat ea, mollis expetendis usu ei. Cetero aeterno '
-                 u'nostrud eu për.')
+            u'invidunt, ea facete aperiam his. Et cum iusto detracto, '
+            u'nam atqui nostrum no, eum altera indoctum ad. Has ut duis '
+            u'tractatos laboramus, cum sale primis ei. Ius inimicus '
+            u'intellegebat ea, mollis expetendis usu ei. Cetero aeterno '
+            u'nostrud eu për.',
+        )
         Rating.objects.create(
-            addon=addon, body=None, rating=5, user=user_factory())
+            addon=addon, body=None, rating=5, user=user_factory()
+        )
         # Create a reply.
         Rating.objects.create(
-            addon=addon, user=user, body=u'Réply', reply_to=self.rating)
+            addon=addon, user=user, body=u'Réply', reply_to=self.rating
+        )
 
         self.grant_permission(user, 'Admin:Tools')
         self.grant_permission(user, 'Ratings:Moderate')
@@ -56,19 +63,21 @@ class TestRatingAdmin(TestCase):
         assert (
             u'Lôrem ipsum dolor sit amet, per at melius fuisset invidunt, ea '
             u'facete aperiam his. Et cum iusto detracto, nam atqui nostrum no,'
-            u' eum altera...'
-            in content)
+            u' eum altera...' in content
+        )
         # ... And add-on name display.
         assert str(self.addon.name) in content
 
         response = self.client.get(
-            self.list_url, {'type': 'rating'}, follow=True)
+            self.list_url, {'type': 'rating'}, follow=True
+        )
         assert response.status_code == 200
         doc = pq(response.content)
         assert doc('#result_list tbody tr').length == 3
 
         response = self.client.get(
-            self.list_url, {'type': 'reply'}, follow=True)
+            self.list_url, {'type': 'reply'}, follow=True
+        )
         assert response.status_code == 200
         doc = pq(response.content)
         assert doc('#result_list tbody tr').length == 1
@@ -79,18 +88,23 @@ class TestRatingAdmin(TestCase):
 
         # Create a few more ratings.
         Rating.objects.create(
-            addon=addon, user=user_factory(), rating=4,
+            addon=addon,
+            user=user_factory(),
+            rating=4,
             body=u'Lôrem ipsum dolor sit amet, per at melius fuisset '
-                 u'invidunt, ea facete aperiam his. Et cum iusto detracto, '
-                 u'nam atqui nostrum no, eum altera indoctum ad. Has ut duis '
-                 u'tractatos laboramus, cum sale primis ei. Ius inimicus '
-                 u'intellegebat ea, mollis expetendis usu ei. Cetero aeterno '
-                 u'nostrud eu për.')
+            u'invidunt, ea facete aperiam his. Et cum iusto detracto, '
+            u'nam atqui nostrum no, eum altera indoctum ad. Has ut duis '
+            u'tractatos laboramus, cum sale primis ei. Ius inimicus '
+            u'intellegebat ea, mollis expetendis usu ei. Cetero aeterno '
+            u'nostrud eu për.',
+        )
         Rating.objects.create(
-            addon=addon, body=None, rating=5, user=user_factory())
+            addon=addon, body=None, rating=5, user=user_factory()
+        )
         # Create a reply.
         Rating.objects.create(
-            addon=addon, user=user, body=u'Réply', reply_to=self.rating)
+            addon=addon, user=user, body=u'Réply', reply_to=self.rating
+        )
 
         self.grant_permission(user, 'Admin:Tools')
         self.grant_permission(user, 'Ratings:Moderate')
@@ -124,8 +138,9 @@ class TestRatingAdmin(TestCase):
         self.client.login(email=user.email)
         response = self.client.get(self.delete_url, follow=True)
         assert response.status_code == 403
-        response = self.client.post(self.delete_url, {'post': 'yes'},
-                                    follow=True)
+        response = self.client.post(
+            self.delete_url, {'post': 'yes'}, follow=True
+        )
         assert response.status_code == 403
 
         assert Rating.objects.count() == 1
@@ -146,8 +161,9 @@ class TestRatingAdmin(TestCase):
         response = self.client.get(self.delete_url, follow=True)
         assert response.status_code == 200
         assert b'Cannot delete rating' not in response.content
-        response = self.client.post(self.delete_url, {'post': 'yes'},
-                                    follow=True)
+        response = self.client.post(
+            self.delete_url, {'post': 'yes'}, follow=True
+        )
         assert response.status_code == 200
 
         assert Rating.objects.count() == 0

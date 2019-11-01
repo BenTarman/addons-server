@@ -7,8 +7,11 @@ from . import views
 
 discovery = SimpleRouter()
 discovery.register('discovery', views.DiscoveryViewSet, basename='discovery')
-discovery.register('discovery/editorial', views.DiscoveryItemViewSet,
-                   basename='discovery-editorial')
+discovery.register(
+    'discovery/editorial',
+    views.DiscoveryItemViewSet,
+    basename='discovery-editorial',
+)
 
 urlpatterns = [
     url(r'', include(discovery.urls)),

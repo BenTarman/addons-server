@@ -9,8 +9,11 @@ from django.core.cache import cache
 
 from olympia import amo
 from olympia.reviewers.serializers import (
-    AddonBrowseVersionSerializer, FileEntriesSerializer,
-    FileEntriesDiffSerializer, CannedResponseSerializer)
+    AddonBrowseVersionSerializer,
+    FileEntriesSerializer,
+    FileEntriesDiffSerializer,
+    CannedResponseSerializer,
+)
 from olympia.reviewers.models import CannedResponse
 from olympia.amo.urlresolvers import reverse
 from olympia.amo.tests import TestCase, addon_factory, version_factory
@@ -28,7 +31,9 @@ class TestFileEntriesSerializer(TestCase):
         self.addon = addon_factory(
             file_kw={
                 'filename': 'notify-link-clicks-i18n.xpi',
-                'is_webextension': True})
+                'is_webextension': True,
+            }
+        )
         extract_version_to_git(self.addon.current_version.pk)
         self.addon.current_version.refresh_from_db()
 
@@ -39,8 +44,7 @@ class TestFileEntriesSerializer(TestCase):
         request.version = api_version
         extra_context.setdefault('request', request)
 
-        return FileEntriesSerializer(
-            instance=obj, context=extra_context)
+        return FileEntriesSerializer(instance=obj, context=extra_context)
 
     def serialize(self, obj, **extra_context):
         return self.get_serializer(obj, **extra_context).data
@@ -55,36 +59,55 @@ class TestFileEntriesSerializer(TestCase):
         assert data['hash'] == ''
         assert data['is_webextension'] is True
         assert data['created'] == (
-            file.created.replace(microsecond=0).isoformat() + 'Z')
+            file.created.replace(microsecond=0).isoformat() + 'Z'
+        )
         assert data['url'] == (
             'http://testserver/firefox/downloads/file/{}'
-            '/notify-link-clicks-i18n.xpi?src=').format(file.pk)
+            '/notify-link-clicks-i18n.xpi?src='
+        ).format(file.pk)
 
         assert data['selected_file'] == 'manifest.json'
-        assert data['download_url'] == absolutify(reverse(
-            'reviewers.download_git_file',
-            kwargs={
-                'version_id': self.addon.current_version.pk,
-                'filename': 'manifest.json'
-            }
-        ))
+        assert data['download_url'] == absolutify(
+            reverse(
+                'reviewers.download_git_file',
+                kwargs={
+                    'version_id': self.addon.current_version.pk,
+                    'filename': 'manifest.json',
+                },
+            )
+        )
 
         assert set(data['entries'].keys()) == {
             'README.md',
-            '_locales', '_locales/de', '_locales/en', '_locales/nb_NO',
-            '_locales/nl', '_locales/ru', '_locales/sv', '_locales/ja',
-            '_locales/de/messages.json', '_locales/en/messages.json',
-            '_locales/ja/messages.json', '_locales/nb_NO/messages.json',
-            '_locales/nl/messages.json', '_locales/ru/messages.json',
-            '_locales/sv/messages.json', 'background-script.js',
-            'content-script.js', 'icons', 'icons/LICENSE', 'icons/link-48.png',
-            'manifest.json'}
+            '_locales',
+            '_locales/de',
+            '_locales/en',
+            '_locales/nb_NO',
+            '_locales/nl',
+            '_locales/ru',
+            '_locales/sv',
+            '_locales/ja',
+            '_locales/de/messages.json',
+            '_locales/en/messages.json',
+            '_locales/ja/messages.json',
+            '_locales/nb_NO/messages.json',
+            '_locales/nl/messages.json',
+            '_locales/ru/messages.json',
+            '_locales/sv/messages.json',
+            'background-script.js',
+            'content-script.js',
+            'icons',
+            'icons/LICENSE',
+            'icons/link-48.png',
+            'manifest.json',
+        }
 
         manifest_data = data['entries']['manifest.json']
         assert manifest_data['depth'] == 0
         assert manifest_data['filename'] == u'manifest.json'
         assert manifest_data['sha256'] == (
-            '71d4122c0f2f78e089136602f88dbf590f2fa04bb5bc417454bf21446d6cb4f0')
+            '71d4122c0f2f78e089136602f88dbf590f2fa04bb5bc417454bf21446d6cb4f0'
+        )
         assert manifest_data['mimetype'] == 'application/json'
         assert manifest_data['mime_category'] == 'text'
         assert manifest_data['path'] == u'manifest.json'
@@ -116,25 +139,42 @@ class TestFileEntriesSerializer(TestCase):
         assert data['id'] == file.pk
         assert set(data['entries'].keys()) == {
             'README.md',
-            '_locales', '_locales/de', '_locales/en', '_locales/nb_NO',
-            '_locales/nl', '_locales/ru', '_locales/sv', '_locales/ja',
-            '_locales/de/messages.json', '_locales/en/messages.json',
-            '_locales/ja/messages.json', '_locales/nb_NO/messages.json',
-            '_locales/nl/messages.json', '_locales/ru/messages.json',
-            '_locales/sv/messages.json', 'background-script.js',
-            'content-script.js', 'icons', 'icons/LICENSE', 'icons/link-48.png',
-            'manifest.json'}
+            '_locales',
+            '_locales/de',
+            '_locales/en',
+            '_locales/nb_NO',
+            '_locales/nl',
+            '_locales/ru',
+            '_locales/sv',
+            '_locales/ja',
+            '_locales/de/messages.json',
+            '_locales/en/messages.json',
+            '_locales/ja/messages.json',
+            '_locales/nb_NO/messages.json',
+            '_locales/nl/messages.json',
+            '_locales/ru/messages.json',
+            '_locales/sv/messages.json',
+            'background-script.js',
+            'content-script.js',
+            'icons',
+            'icons/LICENSE',
+            'icons/link-48.png',
+            'manifest.json',
+        }
 
         assert data['selected_file'] == 'icons/LICENSE'
         assert data['content'].startswith(
-            'The "link-48.png" icon is taken from the Geomicons')
-        assert data['download_url'] == absolutify(reverse(
-            'reviewers.download_git_file',
-            kwargs={
-                'version_id': self.addon.current_version.pk,
-                'filename': 'icons/LICENSE'
-            }
-        ))
+            'The "link-48.png" icon is taken from the Geomicons'
+        )
+        assert data['download_url'] == absolutify(
+            reverse(
+                'reviewers.download_git_file',
+                kwargs={
+                    'version_id': self.addon.current_version.pk,
+                    'filename': 'icons/LICENSE',
+                },
+            )
+        )
 
     def test_requested_file_with_non_existent_file(self):
         file = self.addon.current_version.current_file
@@ -153,14 +193,17 @@ class TestFileEntriesSerializer(TestCase):
         assert set(data['entries'].keys()) == {'search_20190331.xml'}
         assert data['selected_file'] == 'search_20190331.xml'
         assert data['content'].startswith(
-            '<?xml version="1.0" encoding="utf-8"?>')
-        assert data['download_url'] == absolutify(reverse(
-            'reviewers.download_git_file',
-            kwargs={
-                'version_id': self.addon.current_version.pk,
-                'filename': 'search_20190331.xml'
-            }
-        ))
+            '<?xml version="1.0" encoding="utf-8"?>'
+        )
+        assert data['download_url'] == absolutify(
+            reverse(
+                'reviewers.download_git_file',
+                kwargs={
+                    'version_id': self.addon.current_version.pk,
+                    'filename': 'search_20190331.xml',
+                },
+            )
+        )
 
     def test_get_entries_cached(self):
         file = self.addon.current_version.current_file
@@ -186,16 +229,20 @@ class TestFileEntriesDiffSerializer(TestCase):
         super(TestFileEntriesDiffSerializer, self).setUp()
 
         self.addon = addon_factory(
-            name=u'My Addôn', slug='my-addon',
-            file_kw={'filename': 'webextension_no_id.xpi'})
+            name=u'My Addôn',
+            slug='my-addon',
+            file_kw={'filename': 'webextension_no_id.xpi'},
+        )
 
         extract_version_to_git(self.addon.current_version.pk)
         self.addon.current_version.refresh_from_db()
 
     def create_new_version_for_addon(self, xpi_filename):
         addon = addon_factory(
-            name=u'My Addôn', slug='my-addon',
-            file_kw={'filename': xpi_filename})
+            name=u'My Addôn',
+            slug='my-addon',
+            file_kw={'filename': xpi_filename},
+        )
 
         extract_version_to_git(addon.current_version.pk)
 
@@ -203,10 +250,8 @@ class TestFileEntriesDiffSerializer(TestCase):
         parent_version = addon.current_version
 
         new_version = version_factory(
-            addon=addon, file_kw={
-                'filename': xpi_filename,
-                'is_webextension': True,
-            }
+            addon=addon,
+            file_kw={'filename': xpi_filename, 'is_webextension': True,},
         )
 
         repo = AddonGitRepository.extract_and_commit_from_version(new_version)
@@ -220,8 +265,7 @@ class TestFileEntriesDiffSerializer(TestCase):
         request.version = api_version
         extra_context.setdefault('request', request)
 
-        return FileEntriesDiffSerializer(
-            instance=obj, context=extra_context)
+        return FileEntriesDiffSerializer(instance=obj, context=extra_context)
 
     def serialize(self, obj, **extra_context):
         return self.get_serializer(obj, **extra_context).data
@@ -230,10 +274,11 @@ class TestFileEntriesDiffSerializer(TestCase):
         parent_version = self.addon.current_version
 
         new_version = version_factory(
-            addon=self.addon, file_kw={
+            addon=self.addon,
+            file_kw={
                 'filename': 'webextension_no_id.xpi',
                 'is_webextension': True,
-            }
+            },
         )
 
         repo = AddonGitRepository.extract_and_commit_from_version(new_version)
@@ -250,22 +295,29 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert data['hash'] == ''
         assert data['is_webextension'] is True
         assert data['created'] == (
-            file.created.replace(microsecond=0).isoformat() + 'Z')
+            file.created.replace(microsecond=0).isoformat() + 'Z'
+        )
         assert data['url'] == (
             'http://testserver/firefox/downloads/file/{}'
-            '/webextension_no_id.xpi?src=').format(file.pk)
+            '/webextension_no_id.xpi?src='
+        ).format(file.pk)
 
         assert data['selected_file'] == 'manifest.json'
-        assert data['download_url'] == absolutify(reverse(
-            'reviewers.download_git_file',
-            kwargs={
-                'version_id': self.addon.current_version.pk,
-                'filename': 'manifest.json'
-            }
-        ))
+        assert data['download_url'] == absolutify(
+            reverse(
+                'reviewers.download_git_file',
+                kwargs={
+                    'version_id': self.addon.current_version.pk,
+                    'filename': 'manifest.json',
+                },
+            )
+        )
 
         assert set(data['entries'].keys()) == {
-            'manifest.json', 'README.md', 'test.txt'}
+            'manifest.json',
+            'README.md',
+            'test.txt',
+        }
 
         # The API always renders a diff, even for unmodified files.
         assert data['diff'] is not None
@@ -275,7 +327,8 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert manifest_data['depth'] == 0
         assert manifest_data['filename'] == u'manifest.json'
         assert manifest_data['sha256'] == (
-            'bf9b0744c0011cad5caa55236951eda523f17676e91353a64a32353eac798631')
+            'bf9b0744c0011cad5caa55236951eda523f17676e91353a64a32353eac798631'
+        )
         assert manifest_data['mimetype'] == 'application/json'
         assert manifest_data['mime_category'] == 'text'
         assert manifest_data['path'] == u'manifest.json'
@@ -288,7 +341,8 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert test_txt_data['depth'] == 0
         assert test_txt_data['filename'] == u'test.txt'
         assert test_txt_data['sha256'] == (
-            'f8b40fc302692ea4f552cb3d60bc89dd8b4616e398de5585e471cee73e2c0618')
+            'f8b40fc302692ea4f552cb3d60bc89dd8b4616e398de5585e471cee73e2c0618'
+        )
         assert test_txt_data['mimetype'] == 'text/plain'
         assert test_txt_data['mime_category'] == 'text'
         assert test_txt_data['path'] == u'test.txt'
@@ -312,10 +366,11 @@ class TestFileEntriesDiffSerializer(TestCase):
     def test_serialize_deleted_file(self):
         parent_version = self.addon.current_version
         new_version = version_factory(
-            addon=self.addon, file_kw={
+            addon=self.addon,
+            file_kw={
                 'filename': 'webextension_no_id.xpi',
                 'is_webextension': True,
-            }
+            },
         )
 
         repo = AddonGitRepository.extract_and_commit_from_version(new_version)
@@ -330,19 +385,24 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert data['diff']['mode'] == 'D'
 
     def test_recreate_parent_dir_of_deleted_file(self):
-        addon, repo, parent_version, new_version = \
-            self.create_new_version_for_addon(
-                'webextension_signed_already.xpi')
+        (
+            addon,
+            repo,
+            parent_version,
+            new_version,
+        ) = self.create_new_version_for_addon(
+            'webextension_signed_already.xpi'
+        )
 
         apply_changes(
-            repo, new_version, '', 'META-INF/mozilla.rsa', delete=True)
+            repo, new_version, '', 'META-INF/mozilla.rsa', delete=True
+        )
 
         data = self.serialize(
-            new_version.current_file, parent_version=parent_version)
+            new_version.current_file, parent_version=parent_version
+        )
 
-        entries_by_file = {
-            e['path']: e for e in data['entries'].values()
-        }
+        entries_by_file = {e['path']: e for e in data['entries'].values()}
         parent_dir = 'META-INF'
         assert parent_dir in entries_by_file.keys()
 
@@ -357,22 +417,22 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert parent['modified'] is None
 
     def test_recreate_nested_parent_dir_of_deleted_file(self):
-        addon, repo, parent_version, new_version = \
-            self.create_new_version_for_addon('https-everywhere.xpi')
+        (
+            addon,
+            repo,
+            parent_version,
+            new_version,
+        ) = self.create_new_version_for_addon('https-everywhere.xpi')
 
         apply_changes(
-            repo,
-            new_version,
-            '',
-            '_locales/ru/messages.json',
-            delete=True)
+            repo, new_version, '', '_locales/ru/messages.json', delete=True
+        )
 
         data = self.serialize(
-            new_version.current_file, parent_version=parent_version)
+            new_version.current_file, parent_version=parent_version
+        )
 
-        entries_by_file = {
-            e['path']: e for e in data['entries'].values()
-        }
+        entries_by_file = {e['path']: e for e in data['entries'].values()}
         parent_dir = '_locales/ru'
         assert parent_dir in entries_by_file.keys()
 
@@ -382,19 +442,22 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert parent['path'] == parent_dir
 
     def test_do_not_recreate_parent_dir_of_deleted_root_file(self):
-        addon, repo, parent_version, new_version = \
-            self.create_new_version_for_addon(
-                'webextension_signed_already.xpi')
+        (
+            addon,
+            repo,
+            parent_version,
+            new_version,
+        ) = self.create_new_version_for_addon(
+            'webextension_signed_already.xpi'
+        )
 
-        apply_changes(
-            repo, new_version, '', 'manifest.json', delete=True)
+        apply_changes(repo, new_version, '', 'manifest.json', delete=True)
 
         data = self.serialize(
-            new_version.current_file, parent_version=parent_version)
+            new_version.current_file, parent_version=parent_version
+        )
 
-        entries_by_file = {
-            e['path']: e for e in data['entries'].values()
-        }
+        entries_by_file = {e['path']: e for e in data['entries'].values()}
 
         # Since we just deleted a root file, no additional entries
         # should have been added for its parent directory.
@@ -406,8 +469,12 @@ class TestFileEntriesDiffSerializer(TestCase):
         ]
 
     def test_do_not_recreate_parent_dir_if_it_exists(self):
-        addon, repo, parent_version, new_version = \
-            self.create_new_version_for_addon('https-everywhere.xpi')
+        (
+            addon,
+            repo,
+            parent_version,
+            new_version,
+        ) = self.create_new_version_for_addon('https-everywhere.xpi')
 
         # Delete a file within a directory but modify another file.
         # This will preserve the directory, i.e. we won't have to
@@ -417,19 +484,20 @@ class TestFileEntriesDiffSerializer(TestCase):
             new_version,
             '',
             'chrome-resources/css/chrome_shared.css',
-            delete=True)
+            delete=True,
+        )
         apply_changes(
             repo,
             new_version,
             '/* new content */',
-            'chrome-resources/css/widgets.css')
+            'chrome-resources/css/widgets.css',
+        )
 
         data = self.serialize(
-            new_version.current_file, parent_version=parent_version)
+            new_version.current_file, parent_version=parent_version
+        )
 
-        entries_by_file = {
-            e['path']: e for e in data['entries'].values()
-        }
+        entries_by_file = {e['path']: e for e in data['entries'].values()}
         parent_dir = 'chrome-resources/css'
         assert parent_dir in entries_by_file.keys()
 
@@ -445,10 +513,11 @@ class TestFileEntriesDiffSerializer(TestCase):
         parent_version = self.addon.current_version
 
         new_version = version_factory(
-            addon=self.addon, file_kw={
+            addon=self.addon,
+            file_kw={
                 'filename': 'webextension_no_id.xpi',
                 'is_webextension': True,
-            }
+            },
         )
         AddonGitRepository.extract_and_commit_from_version(new_version)
 
@@ -463,7 +532,8 @@ class TestFileEntriesDiffSerializer(TestCase):
         assert manifest_data['depth'] == 0
         assert manifest_data['filename'] == u'manifest.json'
         assert manifest_data['sha256'] == (
-            'bf9b0744c0011cad5caa55236951eda523f17676e91353a64a32353eac798631')
+            'bf9b0744c0011cad5caa55236951eda523f17676e91353a64a32353eac798631'
+        )
         assert manifest_data['mimetype'] == 'application/json'
         assert manifest_data['mime_category'] == 'text'
         assert manifest_data['path'] == u'manifest.json'
@@ -479,15 +549,11 @@ class TestAddonBrowseVersionSerializer(TestCase):
         super(TestAddonBrowseVersionSerializer, self).setUp()
 
         license = License.objects.create(
-            name={
-                'en-US': u'My License',
-                'fr': u'Mä Licence',
-            },
+            name={'en-US': u'My License', 'fr': u'Mä Licence',},
             text={
                 'en-US': u'Lorem ipsum dolor sit amet, has nemore patrioqué',
             },
-            url='http://license.example.com/'
-
+            url='http://license.example.com/',
         )
 
         self.addon = addon_factory(
@@ -497,7 +563,7 @@ class TestAddonBrowseVersionSerializer(TestCase):
                 'platform': amo.PLATFORM_ALL.id,
                 'size': 42,
                 'filename': 'notify-link-clicks-i18n.xpi',
-                'is_webextension': True
+                'is_webextension': True,
             },
             version_kw={
                 'license': license,
@@ -508,7 +574,7 @@ class TestAddonBrowseVersionSerializer(TestCase):
                     'fr': u'Notes de version en français',
                 },
                 'reviewed': self.days_ago(0),
-            }
+            },
         )
 
         extract_version_to_git(self.addon.current_version.pk)
@@ -524,7 +590,8 @@ class TestAddonBrowseVersionSerializer(TestCase):
         extra_context.setdefault('request', request)
 
         return AddonBrowseVersionSerializer(
-            instance=self.version, context=extra_context)
+            instance=self.version, context=extra_context
+        )
 
     def serialize(self, **extra_context):
         return self.get_serializer(**extra_context).data
@@ -540,8 +607,11 @@ class TestAddonBrowseVersionSerializer(TestCase):
         }
 
         assert data['channel'] == 'listed'
-        assert data['edit_url'] == absolutify(self.addon.get_dev_url(
-            'versions.edit', args=[self.version.pk], prefix_only=True))
+        assert data['edit_url'] == absolutify(
+            self.addon.get_dev_url(
+                'versions.edit', args=[self.version.pk], prefix_only=True
+            )
+        )
         assert data['release_notes'] == {
             'en-US': u'Release notes in english',
             'fr': u'Notes de version en français',
@@ -557,14 +627,22 @@ class TestAddonBrowseVersionSerializer(TestCase):
             'url': 'http://license.example.com/',
         }
         assert data['reviewed'] == (
-            self.version.reviewed.replace(microsecond=0).isoformat() + 'Z')
+            self.version.reviewed.replace(microsecond=0).isoformat() + 'Z'
+        )
 
         # Custom fields
-        validation_url_json = absolutify(reverse(
-            'devhub.json_file_validation', args=[
-                self.addon.slug, self.version.current_file.id]))
-        validation_url = absolutify(reverse('devhub.file_validation', args=[
-            self.addon.slug, self.version.current_file.id]))
+        validation_url_json = absolutify(
+            reverse(
+                'devhub.json_file_validation',
+                args=[self.addon.slug, self.version.current_file.id],
+            )
+        )
+        validation_url = absolutify(
+            reverse(
+                'devhub.file_validation',
+                args=[self.addon.slug, self.version.current_file.id],
+            )
+        )
 
         assert data['validation_url_json'] == validation_url_json
         assert data['validation_url'] == validation_url
@@ -578,18 +656,18 @@ class TestAddonBrowseVersionSerializer(TestCase):
             'id': self.addon.id,
             'slug': self.addon.slug,
             'name': {'en-US': self.addon.name},
-            'icon_url': absolutify(self.addon.get_icon_url(64))
+            'icon_url': absolutify(self.addon.get_icon_url(64)),
         }
 
 
 class TestCannedResponseSerializer(TestCase):
-
     def test_basic(self):
         response = CannedResponse.objects.create(
             name=u'Terms of services',
             response=u'test',
             category=amo.CANNED_RESPONSE_CATEGORY_OTHER,
-            type=amo.CANNED_RESPONSE_TYPE_ADDON)
+            type=amo.CANNED_RESPONSE_TYPE_ADDON,
+        )
 
         data = CannedResponseSerializer(instance=response).data
 

@@ -8,7 +8,8 @@ from unittest.mock import ANY, patch
 
 from olympia.amo.tests import TestCase, user_factory
 from olympia.users.management.commands.createsuperuser import (
-    Command as CreateSuperUser)
+    Command as CreateSuperUser,
+)
 from olympia.users.models import UserProfile
 
 
@@ -54,7 +55,8 @@ class TestCreateSuperUser(TestCase):
             email='me@mozilla.org',
             add_to_supercreate_group=True,
             fxa_id=fxa_id,
-            stdout=out)
+            stdout=out,
+        )
 
         user = UserProfile.objects.get(username='myusername')
         assert user.email == 'me@mozilla.org'

@@ -26,6 +26,7 @@ class TranslationFormMixin(object):
     A mixin for forms with translations that tells fields about the object's
     default locale.
     """
+
     # Hack to restore behavior from pre Django 1.10 times.
     # Django 1.10 enabled `required` rendering for required widgets. That
     # wasn't the case before, this should be fixed properly but simplifies
@@ -45,7 +46,8 @@ class TranslationFormMixin(object):
                 field.set_default_values(
                     field_name=field_name,
                     parent_form=self,
-                    default_locale=locale)
+                    default_locale=locale,
+                )
 
     def add_error(self, field, error):
         if isinstance(error, LocaleErrorMessage):
@@ -74,20 +76,23 @@ class LocaleErrorList(ErrorList):
             if isinstance(item, LocaleErrorMessage):
                 locale, message = item.locale, item.message
                 extra = mark_safe(
-                    u' data-lang="%s"' % conditional_escape(locale))
+                    u' data-lang="%s"' % conditional_escape(locale)
+                )
             else:
                 message, extra = u''.join(list(item)), u''
             li.append((extra, conditional_escape(force_text(message))))
 
-        return mark_safe(format_html(
-            u'<ul class="{}">{}</ul>',
-            self.error_class,
-            format_html_join(
-                u'',
-                u'<li{}>{}</li>',
-                ((extra, elem) for extra, elem in li)
+        return mark_safe(
+            format_html(
+                u'<ul class="{}">{}</ul>',
+                self.error_class,
+                format_html_join(
+                    u'',
+                    u'<li{}>{}</li>',
+                    ((extra, elem) for extra, elem in li),
+                ),
             )
-        ))
+        )
 
     def __getitem__(self, i):
         error = self.data[i]

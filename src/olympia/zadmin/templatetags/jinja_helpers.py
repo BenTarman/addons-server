@@ -8,12 +8,16 @@ from olympia.zadmin.models import get_config as zadmin_get_config
 def admin_site_links():
     return {
         'addons': [
-            ('Search for add-ons by name or id',
-             reverse('zadmin.addon-search')),
+            (
+                'Search for add-ons by name or id',
+                reverse('zadmin.addon-search'),
+            ),
             ('Featured add-ons', reverse('zadmin.features')),
             ('Fake mail', reverse('zadmin.mail')),
-            ('Replacement Addons', reverse(
-                'admin:addons_replacementaddon_changelist')),
+            (
+                'Replacement Addons',
+                reverse('admin:addons_replacementaddon_changelist'),
+            ),
         ],
         'users': [
             ('Configure groups', reverse('admin:access_group_changelist')),
@@ -25,8 +29,10 @@ def admin_site_links():
         ],
         'tools': [
             ('Manage elasticsearch', reverse('zadmin.elastic')),
-            ('View addon log',
-             reverse('admin:activity_activitylog_changelist')),
+            (
+                'View addon log',
+                reverse('admin:activity_activitylog_changelist'),
+            ),
         ],
     }
 

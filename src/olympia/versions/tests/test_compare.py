@@ -27,14 +27,17 @@ def test_version_asterix_compare():
 
 def test_version_dict():
     assert version_dict('5.0') == (
-        {'major': 5,
-         'minor1': 0,
-         'minor2': None,
-         'minor3': None,
-         'alpha': None,
-         'alpha_ver': None,
-         'pre': None,
-         'pre_ver': None})
+        {
+            'major': 5,
+            'minor1': 0,
+            'minor2': None,
+            'minor3': None,
+            'alpha': None,
+            'alpha_ver': None,
+            'pre': None,
+            'pre_ver': None,
+        }
+    )
 
 
 def test_version_int_unicode():

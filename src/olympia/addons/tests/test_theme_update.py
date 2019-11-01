@@ -17,7 +17,6 @@ from olympia.amo.tests import TestCase, addon_factory
 
 
 class TestWSGIApplication(TestCase):
-
     def setUp(self):
         super(TestWSGIApplication, self).setUp()
         self.environ = {'wsgi.input': io.StringIO()}
@@ -25,7 +24,7 @@ class TestWSGIApplication(TestCase):
         self.urls = {
             '/themes/update-check/5': ['en-US', 5, None],
             '/en-US/themes/update-check/5': ['en-US', 5, None],
-            '/fr/themes/update-check/5': ['fr', 5, None]
+            '/fr/themes/update-check/5': ['fr', 5, None],
         }
 
     @mock.patch('services.theme_update.MigratedUpdate')
@@ -33,7 +32,8 @@ class TestWSGIApplication(TestCase):
     def test_wsgi_application_200_migrated(self, MigratedUpdate_mock):
         MigratedUpdate_mock.return_value.is_migrated = True
         MigratedUpdate_mock.return_value.get_json.return_value = (
-            u'{"foó": "ba"}')
+            u'{"foó": "ba"}'
+        )
         # From AMO we consume the ID as the `addon_id`.
         for path_info, call_args in self.urls.items():
             environ = dict(self.environ, PATH_INFO=path_info)
@@ -59,7 +59,7 @@ class TestWSGIApplication(TestCase):
             '/xxx',
             '/themes/update-check/xxx',
             '/en-US/themes/update-check/xxx',
-            '/fr/themes/update-check/xxx'
+            '/fr/themes/update-check/xxx',
         ]
 
         for path_info in urls:
@@ -80,7 +80,6 @@ class TestWSGIApplication(TestCase):
 
 
 class TestMigratedUpdate(TestCase):
-
     def get_update(self, *args):
         update = theme_update.MigratedUpdate(*args)
         update.cursor = connection.cursor()
@@ -92,7 +91,8 @@ class TestMigratedUpdate(TestCase):
         assert not self.get_update('en-US', 1234, 'src=gp').is_migrated
 
         MigratedLWT.objects.create(
-            lightweight_theme_id=666, static_theme=stheme, getpersonas_id=1234)
+            lightweight_theme_id=666, static_theme=stheme, getpersonas_id=1234
+        )
         assert self.get_update('en-US', 666).is_migrated
         assert self.get_update('en-US', 1234, 'src=gp').is_migrated
         assert not self.get_update('en-US', 667).is_migrated
@@ -101,31 +101,32 @@ class TestMigratedUpdate(TestCase):
     def test_response(self):
         stheme = addon_factory(type=amo.ADDON_STATICTHEME)
         stheme.current_version.files.all()[0].update(
-            filename='foo.xpi', hash='brown')
+            filename='foo.xpi', hash='brown'
+        )
         MigratedLWT.objects.create(
-            lightweight_theme_id=999, static_theme=stheme, getpersonas_id=666)
+            lightweight_theme_id=999, static_theme=stheme, getpersonas_id=666
+        )
         update = self.get_update('en-US', 999)
 
         response = json.loads(update.get_json())
         url = '{0}{1}/{2}?{3}'.format(
-            user_media_url('addons'), str(stheme.id), 'foo.xpi',
-            urlencode({'filehash': 'brown'}))
+            user_media_url('addons'),
+            str(stheme.id),
+            'foo.xpi',
+            urlencode({'filehash': 'brown'}),
+        )
         assert update.data == {
-            'stheme_id': stheme.id, 'filename': 'foo.xpi', 'hash': 'brown'}
-        assert response == {
-            "converted_theme": {
-                "url": url,
-                "hash": 'brown'
-            }
+            'stheme_id': stheme.id,
+            'filename': 'foo.xpi',
+            'hash': 'brown',
         }
+        assert response == {"converted_theme": {"url": url, "hash": 'brown'}}
 
         update = self.get_update('en-US', 666, 'src=gp')
         response = json.loads(update.get_json())
         assert update.data == {
-            'stheme_id': stheme.id, 'filename': 'foo.xpi', 'hash': 'brown'}
-        assert response == {
-            "converted_theme": {
-                "url": url,
-                "hash": 'brown'
-            }
+            'stheme_id': stheme.id,
+            'filename': 'foo.xpi',
+            'hash': 'brown',
         }
+        assert response == {"converted_theme": {"url": url, "hash": 'brown'}}
