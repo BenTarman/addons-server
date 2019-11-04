@@ -1785,7 +1785,7 @@ GEOIP_PATH = '/usr/local/share/GeoIP/GeoLite2-Country.mmdb'
 
 EXTENSION_WORKSHOP_URL = env(
     'EXTENSION_WORKSHOP_URL',
-    default='https://extensionworkshop-dev.allizom.org')
+    default='https://extensionworkshop-dev.allizom.org',
 )
 
 # Sectools
